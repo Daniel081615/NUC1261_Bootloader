@@ -109,11 +109,10 @@ typedef struct {
 		uint8_t 	cmd;
 } FW_Info;
 
-extern FW_Info	NowFwInfo;
-
 //	Extern
 extern uint8_t BankID;
 extern const uint32_t Fw_BaseAddr[DUAL_BANK][2];
+extern FW_Info	NowFwInfo;
 
 extern void BootloaderProcess(void);
 extern void FwInfoUpdate(FW_Info *fwinfo);

@@ -1,0 +1,21 @@
+--cpu Cortex-M0
+".\objects\system_nuc1261.o"
+".\objects\startup_nuc1261.o"
+".\objects\main.o"
+".\objects\bootloaderprocess.o"
+".\objects\fmc_user.o"
+".\objects\meterv52pinconfig.o"
+".\objects\select_fw.o"
+".\objects\uart_drv.o"
+".\objects\clk.o"
+".\objects\crc.o"
+".\objects\fmc.o"
+".\objects\gpio.o"
+".\objects\retarget.o"
+".\objects\sys.o"
+".\objects\uart.o"
+".\objects\wdt.o"
+--strict --scatter ".\Objects\NUC1261_Bootloader.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list ".\Listings\NUC1261_Bootloader.map" -o .\Objects\NUC1261_Bootloader.axf

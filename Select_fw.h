@@ -3,8 +3,8 @@
 
 #include "stdbool.h"
 #include "fw_metadata.h"
+#include "BootloaderProcess.h"
 #include "fmc.h"
-#include "crc_user.h"
 #include "wdt.h"
 
 //	BankMeta Flag
@@ -27,17 +27,10 @@
 	 ALL_FW_BANK_INVALID
 */
  } ;
-
-#define IS_VALID(meta)   (((meta).flags & FW_FLAG_VALID) != 0)
  
-void BlinkStatusLED(GPIO_T *port, uint32_t pin, GPIO_T *port2, uint32_t pin2, uint8_t times, uint32_t delay_ms);
-void JumpToFirmware(uint32_t fwAddr);
-
-bool VerifyFirmware(FWMetadata *meta);
-static bool IsValidAddress(uint32_t addr);
-
 extern uint8_t	bBank1_Valid, bBank2_Valid;
 
+extern void JumpToFirmware(uint32_t fwAddr);
 extern void BankSelectProcess(void);
  
 #endif // __SELECT_FW_H__

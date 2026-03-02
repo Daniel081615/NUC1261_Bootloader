@@ -2,6 +2,8 @@
 #include	"MyDef.h"
 #include	"ExternFunc.h"
 #include	"BootloaderProcess.h"
+#include  "stdlib.h"
+#include  "string.h"
 #include	"Select_fw.h"
 
 //	Functions
@@ -16,6 +18,9 @@ void SendHost_OTAPackNo(void);
 
 //	FMC Functions
 void BankMetaUpdate(Bank_MetaInfo *meta);
+
+//  Crc Calculator
+uint32_t CRC32_Calculator(const uint32_t *pData, uint32_t len);
 
 //	Patch Func
 void VectorTable_Patcher(uint32_t *vectortable);
@@ -209,7 +214,7 @@ void Host_OTAUpdateProcess(void)
 						{
 								g_packno++;
 						}	else {
-								uint32_t u32Crc =	Calculate_CRC32(Fw_BaseAddr[BankID][FW], NewBankMeta.Size);
+								uint32_t u32Crc =	CRC32_Calculator(&Fw_BaseAddr[BankID][FW], NewBankMeta.Size);
 								if (u32Crc == NewBankMeta.fw_crc32)
 								{
 										_fgPatchEnable = TRUE; 							
@@ -423,12 +428,34 @@ void PatchProcess(void)
 						WriteData(NowPageAddr, NextPageAddr, (uint32_t *)&Aprom_Page_Buff);
 				}
 				//	Cal CRC
-				NewBankMeta.fw_crc32 	= Calculate_CRC32(Fw_BaseAddr[BankID][FW], FwSize);
+				NewBankMeta.fw_crc32 	= CRC32_Calculator(&Fw_BaseAddr[BankID][FW], FwSize);
 
 				BankMetaUpdate(&NewBankMeta);
 				FwInfoUpdate(&NowFwInfo);
 				JumpToFirmware(Fw_BaseAddr[BankID][FW]);
 		}
+}
+
+/**
+ * @brief 通用 CRC32 計算（支援非 4-byte 對齊）
+ * @param pData 資料指標
+ * @param len   資料長度（位元組）
+ * @return CRC32 結果
+ */
+uint32_t CRC32_Calculator(const uint32_t *pData, uint32_t len)
+{
+    uint32_t i, crc_result;
+
+    CRC_Open(CRC_32, CRC_CHECKSUM_COM | CRC_CHECKSUM_RVS | CRC_WDATA_RVS,
+             0xFFFFFFFF, CRC_CPU_WDATA_32);
+
+    // 處理完整 4-byte 區塊
+    for (i = 0; i <= (len/4)+1; i++) {
+        CRC->DAT = pData[i];
+    }
+
+    crc_result = CRC_GetChecksum();
+    return crc_result;
 }
 
 

@@ -18,8 +18,7 @@ echnology Corp. All rights reserved.
 #define 	RS485		//	Define Uart transmission RS485
 
 //	
-#define		DF_BaseAddr			0x0001E800
-#define 	OTA_FLAG_MAGIC  0xA55A5AA5
+#define   APROM_SIZE      0x00020000
 
 #define 	LED_G_On()			(PD7 = 0)
 #define 	LED_G_Off()			(PD7 = 1)

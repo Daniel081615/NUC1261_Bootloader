@@ -43,7 +43,6 @@
 
 #include "Select_fw.h"
 #include "fw_metadata.h"
-#include "crc_user.h"
 #include "Select_fw.h"
 
 #define PLLCTL_SETTING      CLK_PLLCTL_72MHz_HIRC
@@ -53,7 +52,6 @@
 
 //	Functions
 void ReadMyDeviceID(void);
-uint32_t GetApromSize(void);
 
 //	Variables
 uint8_t MyDeviceID;
@@ -146,7 +144,7 @@ void DataFlashConfig(void)
 		//	Data Flash Address
 		u32BaseAddr = FMC_ReadDataFlashBaseAddr();
 	
-		if(u32BaseAddr == DF_BaseAddr) return;
+		if(u32BaseAddr == FW_INFO_BASE) return;
 
 		// 清除 BOOT SELECTION（bit 7:6）
 		au32Config[0] &= ~(0x3 << 6);
@@ -157,7 +155,7 @@ void DataFlashConfig(void)
 		au32Config[0] &= ~0x1;
 
 		// 設定 Data Flash 起始位址
-		au32Config[1] = DF_BaseAddr;
+		au32Config[1] = FW_INFO_BASE;
 
 		FMC_ENABLE_CFG_UPDATE();
 		FMC_WriteConfig(au32Config, 2);
@@ -187,73 +185,36 @@ int main(void)
 		ReadMyDeviceID();
 		
 		DataFlashConfig();
-    g_apromSize = GetApromSize();
+    g_apromSize = APROM_SIZE;
 
+    //  Select Bootloader, Bank1 or Bank2
     BankSelectProcess();
 
     while (1)
     {
-        if ((HostTokenReady == TRUE) && (HostToken[1] == MyDeviceID))
-        {
-						
-            WDT->CTL &= ~(WDT_CTL_WDTEN_Msk | WDT_CTL_ICEDEBUG_Msk);
-            WDT->CTL |= (WDT_TIMEOUT_2POW18 | WDT_CTL_RSTEN_Msk);
-						BootloaderProcess();
-						PatchProcess();
-        }
-				
-
+        BootloaderProcess();
+        PatchProcess();
     }
-	//	Usage??
-_APROM:
-		//	Clear Reset Src
-		SYS_ClearResetSrc(SYS_RSTSTS_PORF_Msk | SYS_RSTSTS_PINRF_Msk);
-		
-		FMC_DISABLE_ISP();
-		//	Set Boot Src to APROM
-		FMC_SetBootSource(FMC_ISPCTL_BS_APROM);
-		
-		NVIC_SystemReset();
-    while (1);
 }
 
 void ReadMyDeviceID(void)
 {	
-		uint8_t u8Deviceid = 0;
 		
 		if ( PB2 )
-			u8Deviceid |= BIT0;
+			MyDeviceID |= BIT0;
 		
 		if ( PB3 )
-			u8Deviceid |= BIT1;
+			MyDeviceID |= BIT1;
 		
 		if ( PB4 )
-			u8Deviceid |= BIT2;
+			MyDeviceID |= BIT2;
 		
 		if ( PB5 )
-			u8Deviceid |= BIT3;
+			MyDeviceID |= BIT3;
 		
 		if ( PB6 )
-			u8Deviceid |= BIT4;
+			MyDeviceID |= BIT4;
 		
 		if ( PB7 )
-			u8Deviceid |= BIT5;
-	
-		MyDeviceID = u8Deviceid;
-}
-
-/**
- * @brief 取得 APROM 實際大小（自動偵測 128K/256K）
- * @return APROM 大小（bytes）
- */
-uint32_t GetApromSize(void)
-{
-    uint32_t size = 0x20000, data;
-    int result;
-
-    do {
-        result = FMC_Read_User(size, &data);
-        if (result < 0) return size;
-        else size *= 2;
-    } while (1);
+			MyDeviceID |= BIT5;
 }

@@ -16,10 +16,9 @@
 //	Update Pack Length
 #define UART_PACKET_PAYLOAD_LEN 	92
 
-#if 0
+
 #define BANK1_META_BASE  		BANK2_BASE - FMC_FLASH_PAGE_SIZE
 #define BANK2_META_BASE			(BANK2_BASE+BANK_SIZE) - FMC_FLASH_PAGE_SIZE
-#endif
 
 #define	VectorTableSize	 0xC0		// 192byte
 #define	RegionTableSize	 0x20		// 32byte

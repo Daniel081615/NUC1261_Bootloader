@@ -2,7 +2,6 @@
 #define __SELECT_FW_H__
 
 #include "stdbool.h"
-#include "fw_metadata.h"
 #include "BootloaderProcess.h"
 #include "fmc.h"
 #include "wdt.h"

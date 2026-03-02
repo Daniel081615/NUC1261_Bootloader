@@ -30,7 +30,7 @@ I (..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_spi.h)(0x68155F43)
 I (..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_uart.h)(0x68155F43)
 I (..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_i2c.h)(0x68155F43)
 F (..\..\..\NUC1261BSP-master\Library\Device\Nuvoton\NUC1261\Source\ARM\startup_NUC1261.s)(0x68155F42)(--target=arm-arm-none-eabi -mcpu=cortex-m0 -masm=auto  -Wa,armasm,--diag_suppress=A1950W -c-gdwarf-4-IC:/Users/USER/AppData/Local/Arm/Packs/Nuvoton/NuMicroM0_DFP/1.0.0/Device/NUC1261/Include-IC:/Users/USER/AppData/Local/Keil_v5/ARM/CMSIS/Include-Wa,armasm,--pd,"__UVISION_VERSION SETA 542"-o ./objects/startup_nuc1261.o)
-F (..\main.c)(0x69A59481)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m0 -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../../NUC1261BSP-master/Library/CMSIS/Include -I ../../../NUC1261BSP-master/Library/Device/Nuvoton/NUC1261/Include -I ../../../NUC1261BSP-master/Library/StdDriver/inc-IC:/Users/USER/AppData/Local/Arm/Packs/Nuvoton/NuMicroM0_DFP/1.0.0/Device/NUC1261/Include-IC:/Users/USER/AppData/Local/Keil_v5/ARM/CMSIS/Include-D__UVISION_VERSION="542"-o ./objects/main.o -MMD)
+F (..\main.c)(0x69A59BAA)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m0 -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../../NUC1261BSP-master/Library/CMSIS/Include -I ../../../NUC1261BSP-master/Library/Device/Nuvoton/NUC1261/Include -I ../../../NUC1261BSP-master/Library/StdDriver/inc-IC:/Users/USER/AppData/Local/Arm/Packs/Nuvoton/NuMicroM0_DFP/1.0.0/Device/NUC1261/Include-IC:/Users/USER/AppData/Local/Keil_v5/ARM/CMSIS/Include-D__UVISION_VERSION="542"-o ./objects/main.o -MMD)
 I (..\MyDef.h)(0x69A59422)
 I (..\..\..\NUC1261BSP-master\Library\Device\Nuvoton\NUC1261\Include\NUC1261.h)(0x68155F42)
 I (..\..\..\NUC1261BSP-master\Library\CMSIS\Include\core_cm0.h)(0x68155F41)
@@ -62,18 +62,17 @@ I (..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_uart.h)(0x68155F43)
 I (..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_i2c.h)(0x68155F43)
 I (..\MeterV52PinConfig.h)(0x69A12879)
 I (..\uart_drv.h)(0x69A12879)
-I (..\BootloaderProcess.h)(0x69A5944A)
-I (..\Select_fw.h)(0x69A590B8)
-I (..\fw_metadata.h)(0x69A12879)
+I (..\BootloaderProcess.h)(0x69A59C16)
+I (..\Select_fw.h)(0x69A59B3E)
 I (..\fmc_user.h)(0x69A12879)
-F (..\BootloaderProcess.h)(0x69A5944A)()
+F (..\BootloaderProcess.h)(0x69A59C16)()
 F (..\ExternFunc.h)(0x69A12879)()
 F (..\fmc_user.h)(0x69A12879)()
 F (..\MeterV52PinConfig.h)(0x69A12879)()
 F (..\MyDef.h)(0x69A59422)()
-F (..\Select_fw.h)(0x69A590B8)()
+F (..\Select_fw.h)(0x69A59B3E)()
 F (..\uart_drv.h)(0x69A12879)()
-F (..\BootloaderProcess.c)(0x69A28592)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m0 -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../../NUC1261BSP-master/Library/CMSIS/Include -I ../../../NUC1261BSP-master/Library/Device/Nuvoton/NUC1261/Include -I ../../../NUC1261BSP-master/Library/StdDriver/inc-IC:/Users/USER/AppData/Local/Arm/Packs/Nuvoton/NuMicroM0_DFP/1.0.0/Device/NUC1261/Include-IC:/Users/USER/AppData/Local/Keil_v5/ARM/CMSIS/Include-D__UVISION_VERSION="542"-o ./objects/bootloaderprocess.o -MMD)
+F (..\BootloaderProcess.c)(0x69A59C25)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m0 -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../../NUC1261BSP-master/Library/CMSIS/Include -I ../../../NUC1261BSP-master/Library/Device/Nuvoton/NUC1261/Include -I ../../../NUC1261BSP-master/Library/StdDriver/inc-IC:/Users/USER/AppData/Local/Arm/Packs/Nuvoton/NuMicroM0_DFP/1.0.0/Device/NUC1261/Include-IC:/Users/USER/AppData/Local/Keil_v5/ARM/CMSIS/Include-D__UVISION_VERSION="542"-o ./objects/bootloaderprocess.o -MMD)
 I (..\..\..\NUC1261BSP-master\Library\Device\Nuvoton\NUC1261\Include\NUC1261.h)(0x68155F42)
 I (..\..\..\NUC1261BSP-master\Library\CMSIS\Include\core_cm0.h)(0x68155F41)
 I (..\..\..\NUC1261BSP-master\Library\Device\Nuvoton\NUC1261\Include\system_NUC1261.h)(0x68155F42)
@@ -105,9 +104,8 @@ I (..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_i2c.h)(0x68155F43)
 I (..\MyDef.h)(0x69A59422)
 I (..\ExternFunc.h)(0x69A12879)
 I (..\uart_drv.h)(0x69A12879)
-I (..\BootloaderProcess.h)(0x69A5944A)
-I (..\Select_fw.h)(0x69A590B8)
-I (..\fw_metadata.h)(0x69A12879)
+I (..\BootloaderProcess.h)(0x69A59C16)
+I (..\Select_fw.h)(0x69A59B3E)
 I (..\fmc_user.h)(0x69A12879)
 F (..\fmc_user.c)(0x69A12879)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m0 -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../../NUC1261BSP-master/Library/CMSIS/Include -I ../../../NUC1261BSP-master/Library/Device/Nuvoton/NUC1261/Include -I ../../../NUC1261BSP-master/Library/StdDriver/inc-IC:/Users/USER/AppData/Local/Arm/Packs/Nuvoton/NuMicroM0_DFP/1.0.0/Device/NUC1261/Include-IC:/Users/USER/AppData/Local/Keil_v5/ARM/CMSIS/Include-D__UVISION_VERSION="542"-o ./objects/fmc_user.o -MMD)
 I (..\fmc_user.h)(0x69A12879)
@@ -168,7 +166,7 @@ I (..\..\..\NUC1261BSP-master\Library\StdDriver\inc\scuart.h)(0x68155F43)
 I (..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_spi.h)(0x68155F43)
 I (..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_uart.h)(0x68155F43)
 I (..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_i2c.h)(0x68155F43)
-F (..\Select_fw.c)(0x69A59331)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m0 -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../../NUC1261BSP-master/Library/CMSIS/Include -I ../../../NUC1261BSP-master/Library/Device/Nuvoton/NUC1261/Include -I ../../../NUC1261BSP-master/Library/StdDriver/inc-IC:/Users/USER/AppData/Local/Arm/Packs/Nuvoton/NuMicroM0_DFP/1.0.0/Device/NUC1261/Include-IC:/Users/USER/AppData/Local/Keil_v5/ARM/CMSIS/Include-D__UVISION_VERSION="542"-o ./objects/select_fw.o -MMD)
+F (..\Select_fw.c)(0x69A59B91)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m0 -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../../NUC1261BSP-master/Library/CMSIS/Include -I ../../../NUC1261BSP-master/Library/Device/Nuvoton/NUC1261/Include -I ../../../NUC1261BSP-master/Library/StdDriver/inc-IC:/Users/USER/AppData/Local/Arm/Packs/Nuvoton/NuMicroM0_DFP/1.0.0/Device/NUC1261/Include-IC:/Users/USER/AppData/Local/Keil_v5/ARM/CMSIS/Include-D__UVISION_VERSION="542"-o ./objects/select_fw.o -MMD)
 I (..\MyDef.h)(0x69A59422)
 I (..\..\..\NUC1261BSP-master\Library\Device\Nuvoton\NUC1261\Include\NUC1261.h)(0x68155F42)
 I (..\..\..\NUC1261BSP-master\Library\CMSIS\Include\core_cm0.h)(0x68155F41)
@@ -200,9 +198,8 @@ I (..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_uart.h)(0x68155F43)
 I (..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_i2c.h)(0x68155F43)
 I (..\ExternFunc.h)(0x69A12879)
 I (..\uart_drv.h)(0x69A12879)
-I (..\BootloaderProcess.h)(0x69A5944A)
-I (..\Select_fw.h)(0x69A590B8)
-I (..\fw_metadata.h)(0x69A12879)
+I (..\BootloaderProcess.h)(0x69A59C16)
+I (..\Select_fw.h)(0x69A59B3E)
 I (..\fmc_user.h)(0x69A12879)
 F (..\uart_drv.c)(0x69A12879)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m0 -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../../NUC1261BSP-master/Library/CMSIS/Include -I ../../../NUC1261BSP-master/Library/Device/Nuvoton/NUC1261/Include -I ../../../NUC1261BSP-master/Library/StdDriver/inc-IC:/Users/USER/AppData/Local/Arm/Packs/Nuvoton/NuMicroM0_DFP/1.0.0/Device/NUC1261/Include-IC:/Users/USER/AppData/Local/Keil_v5/ARM/CMSIS/Include-D__UVISION_VERSION="542"-o ./objects/uart_drv.o -MMD)
 I (..\..\..\NUC1261BSP-master\Library\Device\Nuvoton\NUC1261\Include\NUC1261.h)(0x68155F42)
@@ -236,7 +233,7 @@ I (..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_i2c.h)(0x68155F43)
 I (..\MyDef.h)(0x69A59422)
 I (..\ExternFunc.h)(0x69A12879)
 I (..\uart_drv.h)(0x69A12879)
-I (..\BootloaderProcess.h)(0x69A5944A)
+I (..\BootloaderProcess.h)(0x69A59C16)
 F (..\..\..\NUC1261BSP-master\Library\StdDriver\src\clk.c)(0x68155F43)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m0 -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../../NUC1261BSP-master/Library/CMSIS/Include -I ../../../NUC1261BSP-master/Library/Device/Nuvoton/NUC1261/Include -I ../../../NUC1261BSP-master/Library/StdDriver/inc-IC:/Users/USER/AppData/Local/Arm/Packs/Nuvoton/NuMicroM0_DFP/1.0.0/Device/NUC1261/Include-IC:/Users/USER/AppData/Local/Keil_v5/ARM/CMSIS/Include-D__UVISION_VERSION="542"-o ./objects/clk.o -MMD)
 I (..\..\..\NUC1261BSP-master\Library\Device\Nuvoton\NUC1261\Include\NUC1261.h)(0x68155F42)
 I (..\..\..\NUC1261BSP-master\Library\CMSIS\Include\core_cm0.h)(0x68155F41)

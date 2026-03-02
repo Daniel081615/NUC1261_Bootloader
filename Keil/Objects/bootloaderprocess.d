@@ -28,4 +28,4 @@
   ..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_uart.h \
   ..\..\..\NUC1261BSP-master\Library\StdDriver\inc\usci_i2c.h ..\MyDef.h \
   ..\ExternFunc.h ..\uart_drv.h ..\BootloaderProcess.h ..\Select_fw.h \
-  ..\fw_metadata.h ..\fmc_user.h
+  ..\fmc_user.h

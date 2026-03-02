@@ -5,6 +5,7 @@
 #include  "stdlib.h"
 #include  "string.h"
 #include	"Select_fw.h"
+#include  "fmc_user.h"
 
 //	Functions
 void BootloaderProcess(void);
@@ -198,7 +199,7 @@ void Host_OTAUpdateProcess(void)
 						}
 						StartAddress = Fw_BaseAddr[BankID][FW];
 						/***	ERASE APROM		***/
-						EraseAP(Fw_BaseAddr[BankID][FW], MAX_BANK_SIZE);
+						EraseAP(Fw_BaseAddr[BankID][FW], BANK_SIZE);
 					break;
 						
 				case	CMD_UPDATE_FW	:
@@ -219,7 +220,7 @@ void Host_OTAUpdateProcess(void)
 								{
 										_fgPatchEnable = TRUE; 							
 								} else {
-										EraseAP(Fw_BaseAddr[BankID][FW], MAX_BANK_SIZE);
+										EraseAP(Fw_BaseAddr[BankID][FW], BANK_SIZE);
 										g_packno = 0;
 								}
 

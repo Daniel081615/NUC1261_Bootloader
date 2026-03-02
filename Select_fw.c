@@ -13,6 +13,7 @@
 #include "ExternFunc.h"
 #include "Select_fw.h"
 #include "BootloaderProcess.h"
+#include "fmc_user.h"
 
 
 uint8_t bBank1_Valid, bBank2_Valid ;

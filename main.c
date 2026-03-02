@@ -40,10 +40,8 @@
 #include	"uart_drv.h"
 #include	"BootloaderProcess.h"
 
-
-#include "Select_fw.h"
-#include "fw_metadata.h"
-#include "Select_fw.h"
+#include  "Select_fw.h"
+#include  "fmc_user.h"
 
 #define PLLCTL_SETTING      CLK_PLLCTL_72MHz_HIRC
 #define PLL_CLOCK           71884800

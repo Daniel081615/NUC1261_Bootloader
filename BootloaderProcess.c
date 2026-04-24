@@ -206,10 +206,12 @@ void Host_OTAUpdateProcess(void)
 						if (TotalLen <= UART_PACKET_PAYLOAD_LEN) 
 								PktPayloadLen = TotalLen;
 						
-						TotalLen -= PktPayloadLen;
+						TotalLen 		-= PktPayloadLen;
+						LastDataLen  = PktPayloadLen;
 						/***	Write APROM		***/
 						WriteData(StartAddress, StartAddress + PktPayloadLen, (uint32_t *)pSrc);
 						StartAddress += PktPayloadLen;
+						
 						
 						if (g_packno < TotalPackNo)
 						{

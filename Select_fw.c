@@ -14,6 +14,7 @@
 #include "Select_fw.h"
 #include "BootloaderProcess.h"
 #include "fmc_user.h"
+#include "fw_metadata.h"
 
 
 uint8_t bBank1_Valid, bBank2_Valid ;

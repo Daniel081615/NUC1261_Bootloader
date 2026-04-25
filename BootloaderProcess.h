@@ -6,8 +6,8 @@
 //	Memory Addr
 #define BANK1_BASE					0x00002000
 #define BANK2_BASE					0x00010000
-#define FW_INFO_BASE				BANK2_BASE + BANK_SIZE
-#define BANK_SIZE						BANK2_BASE - BANK1_BASE
+#define BANK_SIZE						(BANK2_BASE - BANK1_BASE)
+#define FW_INFO_BASE				(BANK2_BASE + BANK_SIZE)
 #define DUAL_BANK						2
 #define BANK1			0
 #define BANK2			1
@@ -93,14 +93,13 @@ enum DEFINE_RS485_METER_TOKEN
 
 
 //	FWMetadata
-typedef struct {
-    uint8_t flags;
-		uint32_t Version;
+typedef __packed struct {
+    uint8_t  flags;
+    uint32_t Version;
     uint32_t Size;
-		uint32_t RegionTable_Addr;
+    uint32_t RegionTable_Addr;
     uint32_t fw_crc32;
-	
-    uint8_t trial_counter;
+    uint8_t  trial_counter;
 } Bank_MetaInfo;
 
 typedef struct {
@@ -108,14 +107,16 @@ typedef struct {
 		uint8_t 	cmd;
 } FW_Info;
 
-//	Extern
-extern uint8_t BankID;
+//	Extern — shared variables
+extern uint8_t   BankID;
 extern const uint32_t Fw_BaseAddr[DUAL_BANK][2];
-extern FW_Info	NowFwInfo;
+extern FW_Info         NowFwInfo;
+extern Bank_MetaInfo   NewBankMeta;
+extern _Bool           _fgPatchEnable;
+extern __attribute__((aligned(4))) uint8_t Aprom_Page_Buff[];
+extern __attribute__((aligned(4))) uint8_t Next_Aprom_Page_Buff[];
 
 extern void BootloaderProcess(void);
-extern void FwInfoUpdate(FW_Info *fwinfo);
-extern void	PatchProcess(void);
 
 
 

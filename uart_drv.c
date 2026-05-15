@@ -1,18 +1,17 @@
 /****************************************************************************
  * @file     uart_drv.c
- * @version  V1.33.0005
- * @Date     Wed Feb 20 2026 17:21:09 GMT+0800 (台北標準時間)
+ * @version  V1.33.0006
  * @brief    uart init, IRQ Functions code file
+ *            Bug B6/B7 修正: 移除 ISR 內 busy-wait TX，改為純非阻塞模式
  *
  * SPDX-License-Identifier: Apache-2.0
- *
-echnology Corp. All rights reserved.
-*****************************************************************************/
+ *****************************************************************************/
 
 #include 	"NUC1261.h"
 #include	"MyDef.h"
 #include	"ExternFunc.h"
 #include	"uart_drv.h"
+#include <string.h>
 
 //	Functions
 void UART0_Init(void);
@@ -176,17 +175,18 @@ void UART1_IRQHandler(void)
 		if(u32IntSts & UART_INTSTS_THREINT_Msk)
 		{
 				if(HOSTTxQ_cnt > 0)
-				{      
-						while(UART_IS_TX_FULL(UART1));  /* Wait Tx is not full to transmit data */
-						UART_WRITE(UART1, HOSTTxQ[HOSTTxQ_rp]);      
-						HOSTTxQ_cnt--;				                   
+				{
+						/* Bug B6 修正: 移除 while(UART_IS_TX_FULL) busy-wait；
+						 * THRE 中斷觸發時 TX FIFO 必然有空間，直接寫入即可 */
+						UART_WRITE(UART1, HOSTTxQ[HOSTTxQ_rp]);
+						HOSTTxQ_cnt--;
 						HOSTTxQ_rp++;
-						if(HOSTTxQ_rp >= MAX_UART_PACKET_LENGTH) 
-								HOSTTxQ_rp = 0 ;		
+						if(HOSTTxQ_rp >= MAX_UART_PACKET_LENGTH)
+								HOSTTxQ_rp = 0;
 				} else {
 						UART_DisableInt(UART1, (UART_INTEN_THREIEN_Msk));
 						UART_EnableInt(UART1, (UART_INTEN_RDAIEN_Msk));
-				}                	
+				}
 		}
 }
 
@@ -262,7 +262,7 @@ uint8_t _SendStringToHOST(uint8_t *Str, uint8_t len)
 
 		if( (HOSTTxQ_cnt+len) > MAX_UART_PACKET_LENGTH )
 		{
-				return 0x01 ;
+				return 0x01;
 		} else {
 				for(idx=0; idx<len; idx++)
 				{
@@ -273,11 +273,11 @@ uint8_t _SendStringToHOST(uint8_t *Str, uint8_t len)
 								HOSTTxQ_wp=0;
 						}
 						HOSTTxQ_cnt++;
-				}        				
-				UART_EnableInt(UART1, (UART_INTEN_THREIEN_Msk ));
+				}
+				UART_EnableInt(UART1, (UART_INTEN_THREIEN_Msk));
+				/* Bug B7 修正: 移除 while(TXEMPTYF) 阻塞等待；ISR 非同步排空 TxQ */
 		}
-		while (!(UART1->FIFOSTS & UART_FIFOSTS_TXEMPTYF_Msk));
-		return 0x00 ;
+		return 0x00;
 }
 //	Clear Uart Token
 void ResetHostUART(void)
@@ -292,10 +292,75 @@ void ResetHostUART(void)
 
 void ResetMeterUART(void)
 {
-		METERRxQ_wp 	= 0 ; 
+		METERRxQ_wp 	= 0 ;
 		METERRxQ_rp 	= 0 ;
 		METERRxQ_cnt 	= 0 ;
-		METERTxQ_wp 	= 0 ; 
+		METERTxQ_wp 	= 0 ;
 		METERTxQ_rp 	= 0 ;
 		METERTxQ_cnt 	= 0 ;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  SysTick — 1 ms 計數器
+ * ═══════════════════════════════════════════════════════════ */
+
+static volatile uint32_t s_ms_tick = 0u;
+
+void SysTick_Handler(void)
+{
+    s_ms_tick++;
+}
+
+void BL_SysTickInit(void)
+{
+    /* SystemCoreClock 由 Nuvoton CMSIS 在 system_nuc1261.c 中更新 */
+    SysTick_Config(SystemCoreClock / 1000u);
+}
+
+uint32_t BL_GetTickMs(void)
+{
+    return s_ms_tick;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  BL UART API — 包裝現有 ISR 驅動環形緩衝區
+ * ═══════════════════════════════════════════════════════════ */
+
+void BL_UART_Poll(void)
+{
+    /* ISR 已處理收發，主迴圈不需額外輪詢 */
+}
+
+_Bool BL_UART_HasPacket(void)
+{
+    return HostTokenReady;
+}
+
+const uint8_t *BL_UART_GetPacket(void)
+{
+    HostTokenReady = 0;
+    return HostToken;
+}
+
+/* 組 MAX_UART_PACKET_LENGTH(100) bytes 固定幀並非阻塞入 TxQ */
+void BL_UART_SendRsp(uint8_t cmd, const uint8_t *payload, uint16_t len)
+{
+    uint16_t i;
+    uint16_t copy_len;
+
+    memset(HostTxBuffer, 0, MAX_UART_PACKET_LENGTH);
+    HostTxBuffer[2] = cmd;
+
+    if (payload != NULL && len > 0u)
+    {
+        /* payload 放在 byte 3 開始，最多到 byte 97 (留 checksum + tail) */
+        copy_len = len;
+        if (copy_len > (uint16_t)(MAX_UART_PACKET_LENGTH - 5u))
+            copy_len = (uint16_t)(MAX_UART_PACKET_LENGTH - 5u);
+
+        for (i = 0u; i < copy_len; i++)
+            HostTxBuffer[3u + i] = payload[i];
+    }
+
+    CalChecksumH();   /* 填 [0..1] header、計算 checksum、呼叫 _SendStringToHOST */
 }

@@ -13,6 +13,9 @@ echnology Corp. All rights reserved.
 #define	__UART_DRV_H__
 
 #include "MyDef.h"
+#include <stdint.h>
+
+#define MAX_HOST_TOKEN_LENGTH  MAX_UART_PACKET_LENGTH  /* 100 bytes */
 
 //	Extern Functions
 extern void UART0_Init(void);
@@ -20,6 +23,18 @@ extern void UART1_Init(void);
 extern void CalChecksumH(void);
 extern void ResetHostUART(void);
 extern void ResetMeterUART(void);
+
+/* ─── BL UART / Timing API ─── */
+extern void           BL_SysTickInit(void);
+extern uint32_t       BL_GetTickMs(void);
+extern void           BL_UART_Poll(void);
+extern _Bool          BL_UART_HasPacket(void);
+extern const uint8_t *BL_UART_GetPacket(void);
+extern void           BL_UART_SendRsp(uint8_t cmd,
+                                      const uint8_t *payload,
+                                      uint16_t len);
+
+#define BL_WDT_Reset()  WDT_RESET_COUNTER()
 
 
 //	Extern variables

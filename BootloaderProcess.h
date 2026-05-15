@@ -1,123 +1,53 @@
-#ifndef		__HOSTPROCESS_H__
-#define		__HOSTPROCESS_H__
+#ifndef __HOSTPROCESS_H__
+#define __HOSTPROCESS_H__
 
-#include	"NUC1261.h"
+#include "NUC1261.h"
+#include "fw_info.h"
+#include "ota_scheduler.h"
+#include "bsp_flash.h"
 
-//	Memory Addr
-#define BANK1_BASE					0x00002000
-#define BANK2_BASE					0x00010000
-#define BANK_SIZE						(BANK2_BASE - BANK1_BASE)
-#define FW_INFO_BASE				(BANK2_BASE + BANK_SIZE)
-#define DUAL_BANK						2
-#define BANK1			0
-#define BANK2			1
-#define FW     		0
-#define META 	1
-//	Update Pack Length
-#define UART_PACKET_PAYLOAD_LEN 	92
+/* ─── Thumb-2 Instruction Decode Constants ─── */
+#define VectorTableSize         0xC0u
+#define RegionTableSize         0x20u
+#define PageInstructNum         (BSP_FLASH_PAGE_SIZE / sizeof(uint16_t))
 
+/* LDR Rd,[PC,#xx] T1 encoding */
+#define LDR_r0_sp_OPCODE        0x9800u
+#define LDR_r0_INSTR            0x4800u
+#define ADR_r0_INSTR            0xA000u
+#define CMP_r0_INSTR            0x2800u
 
-#define BANK1_META_BASE  		BANK2_BASE - FMC_FLASH_PAGE_SIZE
-#define BANK2_META_BASE			(BANK2_BASE+BANK_SIZE) - FMC_FLASH_PAGE_SIZE
+/* Jump-table detection pattern */
+#define JmpTbl_LSLS_INSTR1      0x0081u
+#define JmpTbl_ADR_INSTR2       0xA000u
+#define JmpTbl_LDR_INSTR3       0x5840u
+#define JmpTbl_MOV_INSTR4       0x4687u
+#define MOV_r8_r8               0x46C0u
 
-#define	VectorTableSize	 0xC0		// 192byte
-#define	RegionTableSize	 0x20		// 32byte
-#define PageInstructNum  (FMC_FLASH_PAGE_SIZE / sizeof(uint16_t))
+/* Instruction field masks */
+#define LDR_r0_INSTR_Msk        0xFF00u
+#define LDR_r0_OFFSET_Msk       0x00FFu
+#define ADR_r0_INSTR_Msk        0xFFF0u
+#define ADR_r0_OFFSET_Msk       0x000Fu
+#define CMP_r0_INSTR_Msk        0xFF00u
+#define CMP_r0_OFFSET_Msk       0x00FFu
+#define ALIGN_4Byte_Msk         0xFFFFFFFCu
 
-/***	@Thumb PC	decode define ***/
-//@LSLS 	0x0081	=>	Size of JmpAdrNum *4
-//@ADR		0xa001	=>	JmpTbl StartAddr
-//@LDR		0x5840	=>	Load JmpTbl Addr
-//@MOV		0x4687
-#define LDR_r0_sp_OPCODE			0x9800
-#define	LDR_r0_INSTR					0x4800
-#define LDR_r3_INSTR					0x68E0
-#define ADR_r0_INSTR					0xA000
-#define CMP_r0_INSTR					0x2800
+/* ─── Host Protocol Flags ─── */
+#define FLAG_OTA_UPDATE         BIT7
 
-#define JmpTbl_LSLS_INSTR1		0x0081
-#define JmpTbl_ADR_INSTR2			0xA000
-#define	JmpTbl_LDR_INSTR3			0x5840
-#define	JmpTbl_MOV_INSTR4			0x4687
-#define MOV_r8_r8							0x46c0
+/* ─── Legacy ALIVE/SYS_INFO (backward-compat with Center host) ─── */
+#define METER_CMD_ALIVE         0x10u
+#define METER_RSP_SYS_INFO      0x31u
 
-#define LDR_r0_INSTR_Msk			0xff00
-#define LDR_r0_OFFSET_Msk			0x00ff
-
-#define LDR_r3_INSTR_Msk			0xfff0
-#define LDR_r3_OFFSET_Msk			0x000f
-
-#define ADR_r0_INSTR_Msk			0xfff0
-#define ADR_r0_OFFSET_Msk			0x000f
-
-#define CMP_r0_INSTR_Msk			0xff00
-#define CMP_r0_OFFSET_Msk			0x00ff
-
-#define ALIGN_4Byte_Msk				0xfffffffc
-
-/*** 	@fgFromHostFlag : Flag From Host ***/
-#define FLAG_OTA_UPDATE		BIT7
-
-/***	@fgToHostFlag ***/
-
-#define TO_CENTER_INIT_METER			BIT6
-#define TO_CENTER_CHG_USER_INFO		BIT7
-
-typedef enum OTA_CMD_TOKEN
-{	
-		CMD_UPDATE_META_INFO   = 0x01,
-    CMD_UPDATE_FW        			= 0x02,
-		CMD_RESEND_PACKET					= 0x03,
-	
-} OTA_CMD_TOKEN;
-
-enum DEFINE_RS485_CENTER_TOKEN 
-{
-		CTR_ALIVE					=	0x10,		//0x10			
-		CTR_OTA_UPDATE		=	0x20,
-
-		RSP_CTR_ACK				= 0x30,		//0x30
-		RSP_CTR_OTA_INFO	= 0x40,
-}	;
-
-
-enum DEFINE_RS485_METER_TOKEN 
-{
-		METER_CMD_ALIVE				=	0x10,	//0x10
-		METER_CMD_OTA_UPDATE	=	0x20,
-
-		METER_RSP_ACK					= 0x30,	//0x30
-		METER_RSP_SYS_INFO		= 0x31,
-		METER_RSP_OTA_INFO		= 0x40,
-} ;
-
-
-//	FWMetadata
-typedef __packed struct {
-    uint8_t  flags;
-    uint32_t Version;
-    uint32_t Size;
-    uint32_t RegionTable_Addr;
-    uint32_t fw_crc32;
-    uint8_t  trial_counter;
-} Bank_MetaInfo;
-
-typedef struct {
-		uint8_t		Bank;
-		uint8_t 	cmd;
-} FW_Info;
-
-//	Extern — shared variables
-extern uint8_t   BankID;
-extern const uint32_t Fw_BaseAddr[DUAL_BANK][2];
-extern FW_Info         NowFwInfo;
-extern Bank_MetaInfo   NewBankMeta;
-extern _Bool           _fgPatchEnable;
+/* ─── Variables Shared Between BootloaderProcess and patch_engine ─── */
+extern uint8_t          BankID;
+extern _Bool            _fgPatchEnable;
+extern Bank_MetaInfo_t  NewBankMeta;
+extern uint32_t         g_apromSize;
 extern __attribute__((aligned(4))) uint8_t Aprom_Page_Buff[];
 extern __attribute__((aligned(4))) uint8_t Next_Aprom_Page_Buff[];
 
 extern void BootloaderProcess(void);
 
-
-
-#endif
+#endif /* __HOSTPROCESS_H__ */

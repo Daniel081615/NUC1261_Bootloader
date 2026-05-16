@@ -2,7 +2,7 @@
 #include "bsp_flash.h"
 #include "fmc.h"
 
-//int32_t g_FMC_i32ErrCode;
+int32_t g_FMC_i32ErrCode;
 
 void BSP_Flash_Init(void)
 {
@@ -105,125 +105,55 @@ BSP_FLASH_Status BSP_Flash_ErasePage(uint32_t u32Addr)
     return BSP_FLASH_OK;
 }
 
-BSP_FLASH_Status BSP_Flash_WritePage(uint32_t page_addr,
-                                     const uint32_t *data,
-                                     uint32_t byte_count)
-{
-    uint32_t word_count;
-    BSP_FLASH_Status ret;
-
-    if (data == NULL)
-        return BSP_FLASH_ERR_PARAM;
-
-    if ((page_addr % BSP_FLASH_PAGE_SIZE) != 0U)
-        return BSP_FLASH_ERR_ALIGN;
-
-    if ((byte_count == 0U) || ((byte_count % 4U) != 0U))
-        return BSP_FLASH_ERR_PARAM;
-
-    if (BSP_Flash_IsValidAddr(page_addr, byte_count) != BSP_FLASH_OK)
-        return BSP_FLASH_ERR_RANGE;
-
-    word_count = byte_count / 4U;
-
-    if (word_count > (BSP_FLASH_PAGE_SIZE / 4U))
-        return BSP_FLASH_ERR_PARAM;
-
-    ret = BSP_Flash_ErasePage(page_addr);
-    if (ret != BSP_FLASH_OK)
-        return ret;
-
-    ret = BSP_Flash_IsBlank(page_addr, BSP_FLASH_PAGE_SIZE);
-    if (ret != BSP_FLASH_OK)
-        return ret;
-
-    ret = BSP_Flash_WriteWords(page_addr, data, word_count);
-    if (ret != BSP_FLASH_OK)
-        return ret;
-
-    ret = BSP_Flash_VerifyPage(page_addr, data, word_count);
-    if (ret != BSP_FLASH_OK)
-        return ret;
-
-    return BSP_FLASH_OK;
-}
-
-BSP_FLASH_Status BSP_Flash_VerifyPage(uint32_t u32Addr,
-                                      const uint32_t *u32Data,
-                                      uint32_t u32Num)
-{
-    uint32_t i;
-    uint32_t readback;
-
-    if ((u32Data == NULL) || (u32Num == 0U))
-        return BSP_FLASH_ERR_PARAM;
-
-    if ((u32Addr % 4U) != 0U)
-        return BSP_FLASH_ERR_ALIGN;
-
-    if (BSP_Flash_IsValidAddr(u32Addr, u32Num * 4U) != BSP_FLASH_OK)
-        return BSP_FLASH_ERR_RANGE;
-
-    for (i = 0; i < u32Num; i++)
-    {
-        readback = FMC_Read(u32Addr + i * 4U);
-        if (readback != u32Data[i])
-            return BSP_FLASH_ERR_VERIFY;
-    }
-
-    return BSP_FLASH_OK;
-}
-
-BSP_FLASH_Status BSP_Flash_IsBlank(uint32_t u32Addr, uint32_t u32Len)
-{
-    uint32_t i;
-
-    if ((u32Len == 0U) || ((u32Len % 4U) != 0U))
-        return BSP_FLASH_ERR_PARAM;
-
-    if ((u32Addr % 4U) != 0U)
-        return BSP_FLASH_ERR_ALIGN;
-
-    if (BSP_Flash_IsValidAddr(u32Addr, u32Len) != BSP_FLASH_OK)
-        return BSP_FLASH_ERR_RANGE;
-
-    for (i = 0; i < (u32Len / 4U); i++)
-    {
-        if (FMC_Read(u32Addr + i * 4U) != 0xFFFFFFFFUL)
-            return BSP_FLASH_ERR_BLANK;
-    }
-
-    return BSP_FLASH_OK;
-}
-
-int32_t BSP_Flash_ReadDataFlashBase(void)
-{
-    /* Read Data Flash base address */
-    return FMC_ReadDataFlashBaseAddr();
-}
 
 void BSP_Flash_JumpToApp(uint32_t app_base) {
+    // 1. 取得 Application 的初始堆疊指標 (Initial Stack Pointer, MSP)
     uint32_t msp_value = *((volatile uint32_t *)app_base);
     
+    // 檢查堆疊指標 (MSP) 是否落在合法的內部記憶體 (SRAM) 範圍內
     if ((msp_value & 0x2FFE0000) != 0x20000000) {
         return; 
     }
 
-    /* NUC1261 專屬的 Vector 映射 */
+    // 2. 解鎖系統暫存器與開啟 FMC (System Unlock & FMC Open)
+    // 這是 Nuvoton 晶片的關鍵：必須解鎖才能操作快閃記憶體控制器 (FMC)
+    SYS_UnlockReg();
+    FMC_Open();
+
+    // 3. 設定硬體向量映射 (Vector Mapping)
+    // 將 0x00000000 的存取硬體重新導向至您的 app_base
     FMC_SetVectorPageAddr(app_base);
 
+    // 4. 取得 Application 的程式進入點 (Reset Handler)
     uint32_t jump_address = *((volatile uint32_t *)(app_base + 4));
     void (*app_reset_handler)(void) = (void (*)(void))jump_address;
 
+    // 5. 關閉全域中斷 (Global Interrupts)
     __disable_irq();
 
+    // 6. 關閉並清除系統滴答定時器 (SysTick)
     SysTick->CTRL = 0;
     SysTick->LOAD = 0;
     SysTick->VAL  = 0;
 
+    // 7. 徹底禁用並清除巢狀向量中斷控制器 (NVIC) 的所有狀態
+    // 確保不會有任何 UART 或 Timer 的殘留中斷在 App 開機時誤觸發
+    // Cortex-M 家族通常有最多 8 個 NVIC 暫存器 (視支援的中斷數量而定，寫入 0xFFFFFFFF 會清除全部)
+    for (int i = 0; i < 8; i++) {
+        NVIC->ICER[i] = 0xFFFFFFFF; // 禁用中斷 (Interrupt Clear-Enable Register)
+        NVIC->ICPR[i] = 0xFFFFFFFF; // 清除待處理標誌 (Interrupt Clear-Pending Register)
+    }
+
+    // 8. 重新鎖定系統暫存器 (System Lock) - 安全考量
+    SYS_LockReg();
+
+    // 9. 設定主堆疊指標 (Main Stack Pointer) 至 App 的設定值
     __set_MSP(msp_value);
+
+    // 10. 執行跳躍 (Jump)
     app_reset_handler();
 
+    // 程式永遠不該執行到這裡，若發生異常則卡在死迴圈 (Infinite Loop)
     while (1) {}
 }
 

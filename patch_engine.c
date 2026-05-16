@@ -5,7 +5,6 @@
  ******************************************************************************/
 
 #include "patch_engine.h"
-#include <string.h>
 #include "BootloaderProcess.h"
 #include "bsp_flash.h"
 #include "flash_service.h"
@@ -31,14 +30,26 @@ static void VectorTable_Patcher(uint32_t *vectortable)
 
 static void RegionTable_Patcher(uint32_t *regiontable, uint32_t FwSize, uint16_t PatchCount)
 {
-    uint32_t bank_base = GetBankBase(BankID);
-    uint8_t  i;
+    uint32_t bank_base   = GetBankBase(BankID);
+    uint16_t num_regions = PatchCount / 4u;  /* 每個 descriptor = {src, dst, size, handler} */
+    uint16_t i;
 
-    for (i = 0u; i < (uint8_t)PatchCount; i++)
+    for (i = 0u; i < num_regions; i++)
     {
-        uint32_t val = regiontable[i];
-        if (val > 0u && val <= FwSize)
-            regiontable[i] = val + bank_base;
+        uint32_t *desc = &regiontable[i * 4u];
+
+        /* word[0]: ROM source address — patch */
+        if (desc[0] > 0u && desc[0] <= FwSize)
+            desc[0] += bank_base;
+
+        /* word[1]: RAM destination — SKIP (SRAM 地址 > FwSize，其實不會被誤 patch，但明確跳過) */
+
+        /* word[2]: byte count — NEVER PATCH，這是最關鍵的 bug fix */
+        /* (保持不動，原值不動) */
+
+        /* word[3]: handler function pointer — patch */
+        if (desc[3] > 0u && desc[3] <= FwSize)
+            desc[3] += bank_base;
     }
 }
 
@@ -64,11 +75,10 @@ static void JumpTable_Patcher(uint8_t JmpAdrNum, size_t patch_byte_offset,
     {
         uint32_t JmpTblExceedSize = (uint32_t)(patch_byte_offset + ((uint32_t)JmpAdrNum * 4u))
                                     - BSP_FLASH_PAGE_SIZE;
-        uint32_t ExceedData[BSP_FLASH_PAGE_SIZE / sizeof(uint32_t)];
-        uint8_t  in_page_cnt = JmpAdrNum - (uint8_t)(JmpTblExceedSize / 4u);
+        uint8_t  in_page_cnt     = JmpAdrNum - (uint8_t)(JmpTblExceedSize / 4u);
+        uint8_t  exceed_cnt      = (uint8_t)(JmpTblExceedSize / 4u);
 
-        BSP_Flash_ReadWords(NextPageAddr, ExceedData,
-                            (JmpTblExceedSize + 3u) / 4u);
+        /* Read the full next page once — no extra stack buffer needed */
         BSP_Flash_ReadWords(NextPageAddr, (uint32_t *)Next_Aprom_Page_Buff,
                             BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
 
@@ -81,14 +91,13 @@ static void JumpTable_Patcher(uint8_t JmpAdrNum, size_t patch_byte_offset,
                 *wp = orig + bank_base;
         }
 
-        /* Patch overflow portion in next page */
-        for (k = 0u; k < (uint8_t)(JmpTblExceedSize / 4u); k++)
+        /* Patch overflow portion directly in Next_Aprom_Page_Buff */
+        for (k = 0u; k < exceed_cnt; k++)
         {
-            if (ExceedData[k] > 0u && ExceedData[k] < fw_size)
-                ExceedData[k] += bank_base;
+            uint32_t *wp = &((uint32_t *)(void *)Next_Aprom_Page_Buff)[k];
+            if (*wp > 0u && *wp < fw_size)
+                *wp += bank_base;
         }
-
-        memcpy(Next_Aprom_Page_Buff, ExceedData, JmpTblExceedSize);
 
         BSP_Flash_ErasePage(NextPageAddr);
         BSP_Flash_WriteWords(NextPageAddr, (uint32_t *)Next_Aprom_Page_Buff,

@@ -11,7 +11,6 @@
  */
 typedef struct {
     int32_t  (*Init)(void);
-    int32_t  (*DeInit)(void);
     int32_t  (*ErasePage)(uint32_t addr);
     int32_t  (*WriteWords)(uint32_t addr, const uint32_t *data, uint32_t word_cnt);
     void     (*ReadWords)(uint32_t addr, uint32_t *data, uint32_t word_cnt);

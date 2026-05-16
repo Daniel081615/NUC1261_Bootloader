@@ -45,9 +45,8 @@ void             BSP_Flash_DeInit(void);
 /* ─── 位址合法性檢查 ─── */
 BSP_FLASH_Status BSP_Flash_IsValidAddr(uint32_t addr, uint32_t len);
 
-/* ─── Page 操作（帶回傳值） ─── */
+/* ─── Page 操作 ─── */
 BSP_FLASH_Status BSP_Flash_ErasePage(uint32_t page_addr);
-BSP_FLASH_Status BSP_Flash_IsBlank(uint32_t addr, uint32_t len);
 
 /* ─── Word 讀寫（帶 Verify） ─── */
 BSP_FLASH_Status BSP_Flash_WriteWords(uint32_t addr,
@@ -57,19 +56,8 @@ void             BSP_Flash_ReadWords(uint32_t addr,
                                      uint32_t *data,
                                      uint32_t word_count);
 
-/* ─── Page 完整操作（Erase + Write + Blank Check + Verify） ─── */
-BSP_FLASH_Status BSP_Flash_WritePage(uint32_t page_addr,
-                                     const uint32_t *data,
-                                     uint32_t word_count);
-BSP_FLASH_Status BSP_Flash_VerifyPage(uint32_t addr,
-                                      const uint32_t *data,
-                                      uint32_t word_count);
-
 /* ─── 其他功能 ─── */
-void             BSP_SET_FLASH_BOOT(void);
-void             BSP_SET_FLASH_AP(void);
-void             BSP_Flash_ReadConfig(uint32_t *data, uint32_t word_count);
-void 						 BSP_Flash_JumpToApp(uint32_t app_base);
+void             BSP_Flash_JumpToApp(uint32_t app_base);
 uint32_t         BSP_Flash_GetCRC32(uint32_t addr, uint32_t byte_len);
 
 

@@ -70,10 +70,11 @@ int main(void)
 
     SYS_Init();
 
-    UART1_Init();
-    BL_SysTickInit();
+    ReadMyDeviceID();           /* GPIO 已由 MeterV52PinConfig_init() 設定，可提早讀取 */
 
-    ReadMyDeviceID();
+    UART1_Init(MyDeviceID);
+    BL_SysTickInit();
+    BootloaderProcess_Init(MyDeviceID);
 
     FlashService_Init(&g_bl_fmc_driver);
 
@@ -81,10 +82,21 @@ int main(void)
 
     Boot_SelectFW();
 
+    /* 組裝 PatchCtx_t — 靜態欄位在迴圈外一次設定；動態欄位（bank_id/meta）於每次 OTA 完成後填入 */
+    PatchCtx_t patch_ctx;
+    patch_ctx.aprom_size    = g_apromSize;
+    patch_ctx.page_buf      = Aprom_Page_Buff;
+    patch_ctx.next_page_buf = Next_Aprom_Page_Buff;
+    patch_ctx.flash         = &g_bl_fmc_driver;
+
     while (1)
     {
         BootloaderProcess();
-        PatchProcess();
+
+        /* BootloaderProcess() 僅在 OTA 成功（BL_OTA_DONE）後返回，此時 BankID/NewBankMeta 有效 */
+        patch_ctx.bank_id = BankID;
+        patch_ctx.meta    = &NewBankMeta;
+        PatchProcess(&patch_ctx);
     }
 }
 

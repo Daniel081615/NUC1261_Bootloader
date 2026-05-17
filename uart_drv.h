@@ -14,7 +14,7 @@
 #define MAX_HOST_TOKEN_LENGTH  MAX_UART_PACKET_LENGTH  /* 100 bytes */
 
 /* Init */
-extern void UART1_Init(void);
+extern void UART1_Init(uint8_t device_id);
 extern void ResetHostUART(void);
 
 /* BL UART / Timing API */

@@ -1,64 +1,77 @@
 /******************************************************************************
  * @file     patch_engine.c
- * @brief    韌體重定位 Patch 引擎（重構版）
- *           使用 BSP_Flash + FlashService API，移除 fmc_user/crc_user 依賴
+ * @brief    韌體重定位 Patch 引擎
+ *           所有狀態透過 PatchCtx_t 注入，不依賴任何全域變數。
+ *           Flash 操作統一走 ctx->flash（IFmcDriver_t），不直接呼叫 BSP。
  ******************************************************************************/
 
 #include "patch_engine.h"
-#include "BootloaderProcess.h"
-#include "bsp_flash.h"
 #include "flash_service.h"
-#include "ExternFunc.h"
+#include "MyDef.h"           /* NUC1261.h → WDT_RESET_COUNTER(), BYTE0/1_Msk */
 
-static uint32_t GetBankBase(uint8_t bank)
+/* ─── 內部輔助 ─────────────────────────────────────────────────────────── */
+
+static uint32_t GetBankBase(uint8_t bank_id)
 {
-    return (bank == 0u) ? BSP_BANK0_BASE : BSP_BANK1_BASE;
+    return (bank_id == 0u) ? BSP_BANK0_BASE : BSP_BANK1_BASE;
 }
 
-static void VectorTable_Patcher(uint32_t *vectortable)
+/* ─── VectorTable_Patcher ──────────────────────────────────────────────── */
+
+static void VectorTable_Patcher(uint32_t *vectortable,
+                                uint32_t  aprom_size,
+                                uint32_t  bank_base)
 {
-    uint32_t bank_base = GetBankBase(BankID);
-    uint8_t  i;
+    uint8_t i;
 
     for (i = 0u; i < (uint8_t)(VectorTableSize / 4u); i++)
     {
         uint32_t VecValue = vectortable[i];
-        if (VecValue != 0u && VecValue < g_apromSize)
+        if (VecValue != 0u && VecValue < aprom_size)
             vectortable[i] = VecValue + bank_base;
     }
 }
 
-static void RegionTable_Patcher(uint32_t *regiontable, uint32_t FwSize, uint16_t PatchCount)
+/* ─── RegionTable_Patcher ──────────────────────────────────────────────── */
+
+static void RegionTable_Patcher(uint32_t *regiontable,
+                                uint32_t  FwSize,
+                                uint16_t  PatchCount,
+                                uint32_t  bank_base)
 {
-    uint32_t bank_base   = GetBankBase(BankID);
-    uint16_t num_regions = PatchCount / 4u;  /* 每個 descriptor = {src, dst, size, handler} */
+    uint16_t num_regions = PatchCount / 4u;
     uint16_t i;
 
     for (i = 0u; i < num_regions; i++)
     {
         uint32_t *desc = &regiontable[i * 4u];
 
-        /* word[0]: ROM source address — patch */
+        /* word[0]: ROM source address */
         if (desc[0] > 0u && desc[0] <= FwSize)
             desc[0] += bank_base;
 
-        /* word[1]: RAM destination — SKIP (SRAM 地址 > FwSize，其實不會被誤 patch，但明確跳過) */
+        /* word[1]: RAM destination — SKIP */
 
-        /* word[2]: byte count — NEVER PATCH，這是最關鍵的 bug fix */
-        /* (保持不動，原值不動) */
+        /* word[2]: byte count — NEVER PATCH */
 
-        /* word[3]: handler function pointer — patch */
+        /* word[3]: handler function pointer */
         if (desc[3] > 0u && desc[3] <= FwSize)
             desc[3] += bank_base;
     }
 }
 
-static void JumpTable_Patcher(uint8_t JmpAdrNum, size_t patch_byte_offset,
-                               uint8_t *page_buf, uint32_t fw_size, uint8_t page_idx)
+/* ─── JumpTable_Patcher ────────────────────────────────────────────────── */
+
+static void JumpTable_Patcher(uint8_t             JmpAdrNum,
+                              size_t               patch_byte_offset,
+                              uint8_t             *page_buf,
+                              uint32_t             fw_size,
+                              uint8_t              page_idx,
+                              uint32_t             bank_base,
+                              const IFmcDriver_t  *flash,
+                              uint8_t             *next_page_buf)
 {
-    uint32_t bank_base        = GetBankBase(BankID);
-    uint32_t NextPageAddr     = bank_base + ((uint32_t)(page_idx + 1u) * BSP_FLASH_PAGE_SIZE);
-    uint32_t Plus_2_Page_Base = NextPageAddr + BSP_FLASH_PAGE_SIZE;
+    uint32_t NextPageAddr = bank_base + ((uint32_t)(page_idx + 1u) * BSP_FLASH_PAGE_SIZE);
     uint8_t  k;
 
     if (patch_byte_offset + ((uint32_t)JmpAdrNum * 4u) < BSP_FLASH_PAGE_SIZE)
@@ -78,11 +91,9 @@ static void JumpTable_Patcher(uint8_t JmpAdrNum, size_t patch_byte_offset,
         uint8_t  in_page_cnt     = JmpAdrNum - (uint8_t)(JmpTblExceedSize / 4u);
         uint8_t  exceed_cnt      = (uint8_t)(JmpTblExceedSize / 4u);
 
-        /* Read the full next page once — no extra stack buffer needed */
-        BSP_Flash_ReadWords(NextPageAddr, (uint32_t *)Next_Aprom_Page_Buff,
-                            BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
+        flash->ReadWords(NextPageAddr, (uint32_t *)next_page_buf,
+                         BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
 
-        /* Patch current-page portion */
         for (k = 0u; k < in_page_cnt; k++)
         {
             uint32_t *wp   = (uint32_t *)&page_buf[patch_byte_offset + ((uint32_t)k * 4u)];
@@ -91,23 +102,22 @@ static void JumpTable_Patcher(uint8_t JmpAdrNum, size_t patch_byte_offset,
                 *wp = orig + bank_base;
         }
 
-        /* Patch overflow portion directly in Next_Aprom_Page_Buff */
         for (k = 0u; k < exceed_cnt; k++)
         {
-            uint32_t *wp = &((uint32_t *)(void *)Next_Aprom_Page_Buff)[k];
+            uint32_t *wp = &((uint32_t *)(void *)next_page_buf)[k];
             if (*wp > 0u && *wp < fw_size)
                 *wp += bank_base;
         }
 
-        BSP_Flash_ErasePage(NextPageAddr);
-        BSP_Flash_WriteWords(NextPageAddr, (uint32_t *)Next_Aprom_Page_Buff,
-                             BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
+        flash->ErasePage(NextPageAddr);
+        flash->WriteWords(NextPageAddr, (uint32_t *)next_page_buf,
+                          BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
     }
-
-    (void)Plus_2_Page_Base;
 }
 
-void PatchProcess(void)
+/* ─── PatchProcess ─────────────────────────────────────────────────────── */
+
+void PatchProcess(PatchCtx_t *ctx)
 {
     uint32_t  FwSize;
     uint8_t   FwPages;
@@ -116,22 +126,21 @@ void PatchProcess(void)
     uint32_t  LastPage;
     uint8_t   i;
 
-    if (!_fgPatchEnable)
+    if (ctx == NULL || ctx->meta == NULL || ctx->flash == NULL)
         return;
 
-    FwSize    = NewBankMeta.fw_size;
+    FwSize    = ctx->meta->fw_size;
     FwPages   = (uint8_t)((FwSize + BSP_FLASH_PAGE_SIZE - 1u) / BSP_FLASH_PAGE_SIZE);
-    bank_base = GetBankBase(BankID);
+    bank_base = GetBankBase(ctx->bank_id);
     LastPage  = (uint32_t)FwPages - 1u;
 
-    /* sentinel disables region-table patching when region_table_addr == 0 */
-    RegionTablePage = (NewBankMeta.region_table_addr != 0u)
-                      ? (NewBankMeta.region_table_addr / BSP_FLASH_PAGE_SIZE)
+    RegionTablePage = (ctx->meta->region_table_addr != 0u)
+                      ? (ctx->meta->region_table_addr / BSP_FLASH_PAGE_SIZE)
                       : 0xFFFFFFFFu;
 
     /* Mark INCOMING before touching pages — power-loss safe */
-    NewBankMeta.usage = (uint8_t)BANK_USAGE_INCOMING;
-    FlashService_UpdateBankMeta(BankID, &NewBankMeta);
+    ctx->meta->usage = (uint8_t)BANK_USAGE_INCOMING;
+    FlashService_UpdateBankMeta(ctx->bank_id, ctx->meta);
     WDT_RESET_COUNTER();
 
     for (i = 0u; i < FwPages; i++)
@@ -139,21 +148,21 @@ void PatchProcess(void)
         uint32_t NowPageAddr = bank_base + ((uint32_t)i * BSP_FLASH_PAGE_SIZE);
 
         WDT_RESET_COUNTER();
-        BSP_Flash_ReadWords(NowPageAddr, (uint32_t *)Aprom_Page_Buff,
-                            BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
+        ctx->flash->ReadWords(NowPageAddr, (uint32_t *)ctx->page_buf,
+                              BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
 
         /* ① Vector table (page 0 only) */
         if (i == 0u)
-            VectorTable_Patcher((uint32_t *)Aprom_Page_Buff);
+            VectorTable_Patcher((uint32_t *)ctx->page_buf, ctx->aprom_size, bank_base);
 
-        /* ② Region table (skipped when region_table_addr == 0) */
+        /* ② Region table */
         if ((uint32_t)i >= RegionTablePage && (uint32_t)i <= LastPage)
         {
             uint32_t PatchStartByteOffset = 0u;
             uint16_t PatchCount           = 0u;
 
             if ((uint32_t)i == RegionTablePage)
-                PatchStartByteOffset = NewBankMeta.region_table_addr % BSP_FLASH_PAGE_SIZE;
+                PatchStartByteOffset = ctx->meta->region_table_addr % BSP_FLASH_PAGE_SIZE;
 
             if ((uint32_t)i == RegionTablePage && (uint32_t)i == LastPage)
                 PatchCount = (uint16_t)(RegionTableSize / sizeof(uint32_t));
@@ -169,19 +178,18 @@ void PatchProcess(void)
             if (PatchCount > 0u)
             {
                 uint32_t idx = PatchStartByteOffset / (uint32_t)sizeof(uint32_t);
-                RegionTable_Patcher((uint32_t *)&Aprom_Page_Buff[idx * sizeof(uint32_t)],
-                                    FwSize, PatchCount);
+                RegionTable_Patcher((uint32_t *)&ctx->page_buf[idx * sizeof(uint32_t)],
+                                    FwSize, PatchCount, bank_base);
             }
         }
 
         /* ③ Thumb LDR Rd,[PC,#xx] scan + jump-table detection */
         {
-            uint16_t *instr_ptr = (uint16_t *)Aprom_Page_Buff;
+            uint16_t *instr_ptr = (uint16_t *)ctx->page_buf;
             size_t    j;
 
             for (j = 9u; j < PageInstructNum; j++)
             {
-                /* LDR Rd,[PC,#imm8] T1 encoding */
                 if ((instr_ptr[j] & 0xF800u) == LDR_r0_INSTR)
                 {
                     uint32_t pc_off   = (uint32_t)(instr_ptr[j] & LDR_r0_OFFSET_Msk) * 4u;
@@ -189,17 +197,16 @@ void PatchProcess(void)
 
                     if (byte_off < BSP_FLASH_PAGE_SIZE)
                     {
-                        uint32_t *wp   = (uint32_t *)&Aprom_Page_Buff[byte_off];
+                        uint32_t *wp   = (uint32_t *)&ctx->page_buf[byte_off];
                         uint32_t  orig = *wp;
                         if (orig > 0u && orig < FwSize && orig != WDT_RESET_COUNTER_KEYWORD)
                             *wp = orig + bank_base;
                     }
                 }
 
-                /* Jump-table: LSLS r1,r0,#2 / ADR r0,{pc}+N / LDR r0,[r0,r1] / MOV pc,r0 */
-                if ((instr_ptr[j]     == JmpTbl_MOV_INSTR4)                           &&
-                    (instr_ptr[j - 1] == JmpTbl_LDR_INSTR3)                           &&
-                    ((instr_ptr[j - 2] & ADR_r0_INSTR_Msk) == JmpTbl_ADR_INSTR2)     &&
+                if ((instr_ptr[j]     == JmpTbl_MOV_INSTR4)                          &&
+                    (instr_ptr[j - 1] == JmpTbl_LDR_INSTR3)                          &&
+                    ((instr_ptr[j - 2] & ADR_r0_INSTR_Msk) == JmpTbl_ADR_INSTR2)    &&
                     (instr_ptr[j - 3] == JmpTbl_LSLS_INSTR1))
                 {
                     if ((instr_ptr[j - 4] & LDR_r0_sp_OPCODE) == LDR_r0_sp_OPCODE)
@@ -216,31 +223,32 @@ void PatchProcess(void)
                             uint32_t pc_off    = (uint32_t)(instr_ptr[j - 2] & ADR_r0_OFFSET_Msk) * 4u;
                             size_t   byte_off  = (((j - 2u) * 2u) + pc_off + 4u)
                                                  & (size_t)ALIGN_4Byte_Msk;
-                            JumpTable_Patcher(JmpAdrNum, byte_off, Aprom_Page_Buff, FwSize, i);
+                            JumpTable_Patcher(JmpAdrNum, byte_off,
+                                              ctx->page_buf, FwSize, i,
+                                              bank_base, ctx->flash, ctx->next_page_buf);
                         }
                     }
                 }
             }
         }
 
-        BSP_Flash_ErasePage(NowPageAddr);
-        BSP_Flash_WriteWords(NowPageAddr, (uint32_t *)Aprom_Page_Buff,
-                             BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
+        ctx->flash->ErasePage(NowPageAddr);
+        ctx->flash->WriteWords(NowPageAddr, (uint32_t *)ctx->page_buf,
+                               BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
     }
 
     WDT_RESET_COUNTER();
 
     /* Recalculate CRC after patching, then mark VALID */
-    NewBankMeta.fw_crc32 = BSP_Flash_GetCRC32(bank_base, FwSize);
-    NewBankMeta.usage    = (uint8_t)BANK_USAGE_VALID;
-    NewBankMeta.health   = (uint8_t)FW_HEALTH_UNVERIFIED;
-    FlashService_UpdateBankMeta(BankID, &NewBankMeta);
+    ctx->meta->fw_crc32 = ctx->flash->GetCRC32(bank_base, FwSize);
+    ctx->meta->usage    = (uint8_t)BANK_USAGE_VALID;
+    ctx->meta->health   = (uint8_t)FW_HEALTH_UNVERIFIED;
+    FlashService_UpdateBankMeta(ctx->bank_id, ctx->meta);
 
-    /* Update FW_Info to point to the newly patched bank */
     {
         FW_Info_t fw;
         FlashService_ReadFWInfo(&fw);
-        fw.active_bank = BankID;
+        fw.active_bank = ctx->bank_id;
         fw.cmd         = (uint8_t)BTLD_CMD_NONE;
         FlashService_UpdateFWInfo(&fw);
     }

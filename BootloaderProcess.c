@@ -6,7 +6,6 @@
 
 #include "NUC1261.h"
 #include "MyDef.h"
-#include "ExternFunc.h"
 #include "BootloaderProcess.h"
 #include "flash_service.h"
 #include "uart_drv.h"
@@ -32,14 +31,20 @@ typedef struct {
     uint32_t      deadline_ms;
 } BL_OtaCtx_t;
 
-/* ─── Shared Variables (used by patch_engine.c) ─── */
-_Bool           _fgPatchEnable;
+/* ─── Shared Variables (used by main.c as composition root) ─── */
+static _Bool    _fgPatchEnable;   /* internal only; main.c reads via BootloaderProcess_PatchReady() */
 uint8_t         BankID;
 Bank_MetaInfo_t NewBankMeta;
 __attribute__((aligned(4))) uint8_t Aprom_Page_Buff[BSP_FLASH_PAGE_SIZE];
 __attribute__((aligned(4))) uint8_t Next_Aprom_Page_Buff[BSP_FLASH_PAGE_SIZE];
 
 static BL_OtaCtx_t s_ctx;
+static uint8_t     s_device_id = 0u;
+
+void BootloaderProcess_Init(uint8_t device_id)
+{
+    s_device_id = device_id;
+}
 
 /* ─── Static Handler Declarations ─── */
 static void HandleEnterReq(void);
@@ -192,7 +197,7 @@ void BootloaderProcess(void)
         if (pkt[MAX_UART_PACKET_LENGTH - 2u] != chk)
             continue;
 
-        if (pkt[1u] != MyDeviceID)
+        if (pkt[1u] != s_device_id)
             continue;
 
         cmd = pkt[2u];

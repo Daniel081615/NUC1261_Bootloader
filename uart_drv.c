@@ -8,11 +8,12 @@
 
 #include "NUC1261.h"
 #include "MyDef.h"
-#include "ExternFunc.h"
 #include "uart_drv.h"
 #include <string.h>
 
 /* Variables */
+static uint8_t s_device_id = 0u;
+
 _Bool   HostTokenReady;
 
 uint8_t HOSTRxQ_wp, HOSTRxQ_rp, HOSTRxQ_cnt;
@@ -111,8 +112,9 @@ static void RS485_AUD_Config(UART_T *uart)
     uart->FIFO   &= ~(UART_FIFO_RFITL_Msk | UART_FIFO_RTSTRGLV_Msk);
 }
 
-void UART1_Init(void)
+void UART1_Init(uint8_t device_id)
 {
+    s_device_id = device_id;
     SYS_ResetModule(UART1_RST);
     CLK_SetModuleClock(UART1_MODULE, CLK_CLKSEL1_UARTSEL_HXT, CLK_CLKDIV0_UART(1));
     UART_Open(UART1, 57600);
@@ -148,7 +150,7 @@ static void CalChecksumH(void)
 {
     uint8_t i, Checksum;
     HostTxBuffer[0] = 0x55;
-    HostTxBuffer[1] = MyDeviceID;
+    HostTxBuffer[1] = s_device_id;
     Checksum = 0;
     for (i = 1; i < (MAX_UART_PACKET_LENGTH - 2); i++)
         Checksum += HostTxBuffer[i];

@@ -78,9 +78,11 @@ static void JumpTable_Patcher(uint8_t             JmpAdrNum,
     {
         for (k = 0u; k < JmpAdrNum; k++)
         {
-            uint32_t *wp   = (uint32_t *)&page_buf[patch_byte_offset + ((uint32_t)k * 4u)];
-            uint32_t  orig = *wp;
-            if (orig > 0u && orig < fw_size)
+            uint32_t *wp      = (uint32_t *)&page_buf[patch_byte_offset + ((uint32_t)k * 4u)];
+            uint32_t  orig    = *wp;
+            uint32_t  stripped = orig & ~1u;
+            /* Jump table entries must be Thumb pointers (LSB=1) on Cortex-M0 */
+            if ((orig & 1u) != 0u && stripped > 0u && stripped < fw_size)
                 *wp = orig + bank_base;
         }
     }
@@ -96,17 +98,20 @@ static void JumpTable_Patcher(uint8_t             JmpAdrNum,
 
         for (k = 0u; k < in_page_cnt; k++)
         {
-            uint32_t *wp   = (uint32_t *)&page_buf[patch_byte_offset + ((uint32_t)k * 4u)];
-            uint32_t  orig = *wp;
-            if (orig > 0u && orig < fw_size)
+            uint32_t *wp      = (uint32_t *)&page_buf[patch_byte_offset + ((uint32_t)k * 4u)];
+            uint32_t  orig    = *wp;
+            uint32_t  stripped = orig & ~1u;
+            if ((orig & 1u) != 0u && stripped > 0u && stripped < fw_size)
                 *wp = orig + bank_base;
         }
 
         for (k = 0u; k < exceed_cnt; k++)
         {
-            uint32_t *wp = &((uint32_t *)(void *)next_page_buf)[k];
-            if (*wp > 0u && *wp < fw_size)
-                *wp += bank_base;
+            uint32_t *wp      = &((uint32_t *)(void *)next_page_buf)[k];
+            uint32_t  orig    = *wp;
+            uint32_t  stripped = orig & ~1u;
+            if ((orig & 1u) != 0u && stripped > 0u && stripped < fw_size)
+                *wp = orig + bank_base;
         }
 
         flash->ErasePage(NextPageAddr);
@@ -197,36 +202,39 @@ void PatchProcess(PatchCtx_t *ctx)
 
                     if (byte_off < BSP_FLASH_PAGE_SIZE)
                     {
-                        uint32_t *wp   = (uint32_t *)&ctx->page_buf[byte_off];
-                        uint32_t  orig = *wp;
-                        if (orig > 0u && orig < FwSize && orig != WDT_RESET_COUNTER_KEYWORD)
+                        uint32_t *wp      = (uint32_t *)&ctx->page_buf[byte_off];
+                        uint32_t  orig    = *wp;
+                        uint32_t  stripped = orig & ~1u;
+                        /* Thumb ptr: LSB=1, stripped addr in [VectorTableSize, FwSize)
+                         * Data ptr:  4-byte aligned, addr in [VectorTableSize, FwSize) */
+                        if (orig != WDT_RESET_COUNTER_KEYWORD &&
+                            (((orig & 1u) != 0u && stripped >= VectorTableSize && stripped < FwSize) ||
+                             ((orig & 3u) == 0u && orig     >= VectorTableSize && orig     < FwSize)))
                             *wp = orig + bank_base;
                     }
                 }
 
-                if ((instr_ptr[j]     == JmpTbl_MOV_INSTR4)                          &&
-                    (instr_ptr[j - 1] == JmpTbl_LDR_INSTR3)                          &&
-                    ((instr_ptr[j - 2] & ADR_r0_INSTR_Msk) == JmpTbl_ADR_INSTR2)    &&
+                /* Accept both MOV pc,r0 (O0/O1) and BX r0 (O2/O3) as jump dispatch */
+                if (((instr_ptr[j] == JmpTbl_MOV_INSTR4) || (instr_ptr[j] == JmpTbl_BX_INSTR4)) &&
+                    (instr_ptr[j - 1] == JmpTbl_LDR_INSTR3)                                       &&
+                    ((instr_ptr[j - 2] & ADR_r0_INSTR_Msk) == JmpTbl_ADR_INSTR2)                 &&
                     (instr_ptr[j - 3] == JmpTbl_LSLS_INSTR1))
                 {
-                    if ((instr_ptr[j - 4] & LDR_r0_sp_OPCODE) == LDR_r0_sp_OPCODE)
-                    {
-                        int cmp_idx = -1;
-                        if ((instr_ptr[j - 6] & BYTE1_Msk) == CMP_r0_INSTR) cmp_idx = (int)(j - 6u);
-                        if ((instr_ptr[j - 7] & BYTE1_Msk) == CMP_r0_INSTR) cmp_idx = (int)(j - 7u);
-                        if ((instr_ptr[j - 8] & BYTE1_Msk) == CMP_r0_INSTR) cmp_idx = (int)(j - 8u);
-                        if ((instr_ptr[j - 9] & BYTE1_Msk) == CMP_r0_INSTR) cmp_idx = (int)(j - 9u);
+                    int cmp_idx = -1;
+                    if ((instr_ptr[j - 6] & BYTE1_Msk) == CMP_r0_INSTR) cmp_idx = (int)(j - 6u);
+                    if ((instr_ptr[j - 7] & BYTE1_Msk) == CMP_r0_INSTR) cmp_idx = (int)(j - 7u);
+                    if ((instr_ptr[j - 8] & BYTE1_Msk) == CMP_r0_INSTR) cmp_idx = (int)(j - 8u);
+                    if ((instr_ptr[j - 9] & BYTE1_Msk) == CMP_r0_INSTR) cmp_idx = (int)(j - 9u);
 
-                        if (cmp_idx != -1)
-                        {
-                            uint8_t  JmpAdrNum = (uint8_t)(instr_ptr[cmp_idx] & BYTE0_Msk) + 1u;
-                            uint32_t pc_off    = (uint32_t)(instr_ptr[j - 2] & ADR_r0_OFFSET_Msk) * 4u;
-                            size_t   byte_off  = (((j - 2u) * 2u) + pc_off + 4u)
-                                                 & (size_t)ALIGN_4Byte_Msk;
-                            JumpTable_Patcher(JmpAdrNum, byte_off,
-                                              ctx->page_buf, FwSize, i,
-                                              bank_base, ctx->flash, ctx->next_page_buf);
-                        }
+                    if (cmp_idx != -1)
+                    {
+                        uint8_t  JmpAdrNum = (uint8_t)(instr_ptr[cmp_idx] & BYTE0_Msk) + 1u;
+                        uint32_t pc_off    = (uint32_t)(instr_ptr[j - 2] & ADR_r0_OFFSET_Msk) * 4u;
+                        size_t   byte_off  = (((j - 2u) * 2u) + pc_off + 4u)
+                                             & (size_t)ALIGN_4Byte_Msk;
+                        JumpTable_Patcher(JmpAdrNum, byte_off,
+                                          ctx->page_buf, FwSize, i,
+                                          bank_base, ctx->flash, ctx->next_page_buf);
                     }
                 }
             }

@@ -11,7 +11,6 @@
 #define PageInstructNum         (BSP_FLASH_PAGE_SIZE / sizeof(uint16_t))
 
 /* LDR Rd,[PC,#xx] T1 encoding */
-#define LDR_r0_sp_OPCODE        0x9800u
 #define LDR_r0_INSTR            0x4800u
 #define ADR_r0_INSTR            0xA000u
 #define CMP_r0_INSTR            0x2800u
@@ -20,7 +19,8 @@
 #define JmpTbl_LSLS_INSTR1      0x0081u
 #define JmpTbl_ADR_INSTR2       0xA000u
 #define JmpTbl_LDR_INSTR3       0x5840u
-#define JmpTbl_MOV_INSTR4       0x4687u
+#define JmpTbl_MOV_INSTR4       0x4687u   /* MOV pc, r0 */
+#define JmpTbl_BX_INSTR4        0x4700u   /* BX r0 — O2/O3 alternative to MOV pc,r0 */
 #define MOV_r8_r8               0x46C0u
 
 /* Instruction field masks */

@@ -14,7 +14,7 @@ typedef enum {
 } OtaCommand_t;
 
 /* OTA 通訊參數 */
-#define OTA_CHUNK_SIZE        92u     /* 每包 payload 最大 bytes (UART_PACKET_PAYLOAD_LEN) */
+#define OTA_CHUNK_SIZE        88u     /* 每包資料 bytes: pkt[7..94]，pkt[95..97] 保留給 unused */
 #define OTA_RECV_TIMEOUT_MS   5000u  /* 接收逾時 ms */
 
 /* UpdateChild REQ payload 欄位偏移 */

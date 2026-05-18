@@ -32,7 +32,6 @@ typedef struct {
 } BL_OtaCtx_t;
 
 /* ─── Shared Variables (used by main.c as composition root) ─── */
-static _Bool    _fgPatchEnable;   /* internal only; main.c reads via BootloaderProcess_PatchReady() */
 uint8_t         BankID;
 Bank_MetaInfo_t NewBankMeta;
 __attribute__((aligned(4))) uint8_t Aprom_Page_Buff[BSP_FLASH_PAGE_SIZE];
@@ -132,7 +131,6 @@ static void HandleStoreReq(const uint8_t *pl, uint16_t len)
             NewBankMeta.fw_crc32          = s_ctx.fw_expected_crc;
             NewBankMeta.region_table_addr = s_ctx.region_table_addr;
 
-            _fgPatchEnable = TRUE;
             s_ctx.state    = BL_OTA_DONE;
 
             rsp = 0x00u;

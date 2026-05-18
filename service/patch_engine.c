@@ -8,6 +8,7 @@
 #include "patch_engine.h"
 #include "flash_service.h"
 #include "MyDef.h"           /* NUC1261.h → WDT_RESET_COUNTER(), BYTE0/1_Msk */
+#include <string.h>          /* memcpy */
 
 /* ─── 內部輔助 ─────────────────────────────────────────────────────────── */
 
@@ -62,14 +63,18 @@ static void RegionTable_Patcher(uint32_t *regiontable,
 
 /* ─── JumpTable_Patcher ────────────────────────────────────────────────── */
 
-static void JumpTable_Patcher(uint8_t             JmpAdrNum,
-                              size_t               patch_byte_offset,
-                              uint8_t             *page_buf,
-                              uint32_t             fw_size,
-                              uint8_t              page_idx,
-                              uint32_t             bank_base,
-                              const IFmcDriver_t  *flash,
-                              uint8_t             *next_page_buf)
+/* Returns 1u if jump table overflows into the next page (next_page_buf was updated).
+ * next_already_staged: pass current next_pre_staged so flash is not re-read when
+ * multiple jump tables on the same page both overflow into the same next page. */
+static _Bool JumpTable_Patcher(uint8_t             JmpAdrNum,
+                               size_t               patch_byte_offset,
+                               uint8_t             *page_buf,
+                               uint32_t             fw_size,
+                               uint8_t              page_idx,
+                               uint32_t             bank_base,
+                               const IFmcDriver_t  *flash,
+                               uint8_t             *next_page_buf,
+                               _Bool                next_already_staged)
 {
     uint32_t NextPageAddr = bank_base + ((uint32_t)(page_idx + 1u) * BSP_FLASH_PAGE_SIZE);
     uint8_t  k;
@@ -85,6 +90,7 @@ static void JumpTable_Patcher(uint8_t             JmpAdrNum,
             if ((orig & 1u) != 0u && stripped > 0u && stripped < fw_size)
                 *wp = orig + bank_base;
         }
+        return 0u;
     }
     else
     {
@@ -93,8 +99,11 @@ static void JumpTable_Patcher(uint8_t             JmpAdrNum,
         uint8_t  in_page_cnt     = JmpAdrNum - (uint8_t)(JmpTblExceedSize / 4u);
         uint8_t  exceed_cnt      = (uint8_t)(JmpTblExceedSize / 4u);
 
-        flash->ReadWords(NextPageAddr, (uint32_t *)next_page_buf,
-                         BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
+        /* Only read from flash if the next page hasn't already been staged by a
+         * previous jump table on this same page iteration. */
+        if (!next_already_staged)
+            flash->ReadWords(NextPageAddr, (uint32_t *)next_page_buf,
+                             BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
 
         for (k = 0u; k < in_page_cnt; k++)
         {
@@ -114,9 +123,9 @@ static void JumpTable_Patcher(uint8_t             JmpAdrNum,
                 *wp = orig + bank_base;
         }
 
-        flash->ErasePage(NextPageAddr);
-        flash->WriteWords(NextPageAddr, (uint32_t *)next_page_buf,
-                          BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
+        /* Flash write deferred: caller writes next_page_buf when the loop
+         * reaches that page, ensuring all patchers run on it exactly once. */
+        return 1u;
     }
 }
 
@@ -130,6 +139,7 @@ void PatchProcess(PatchCtx_t *ctx)
     uint32_t  RegionTablePage;
     uint32_t  LastPage;
     uint8_t   i;
+    _Bool     next_pre_staged;
 
     if (ctx == NULL || ctx->meta == NULL || ctx->flash == NULL)
         return;
@@ -148,13 +158,20 @@ void PatchProcess(PatchCtx_t *ctx)
     FlashService_UpdateBankMeta(ctx->bank_id, ctx->meta);
     WDT_RESET_COUNTER();
 
+    next_pre_staged = 0u;
+
     for (i = 0u; i < FwPages; i++)
     {
         uint32_t NowPageAddr = bank_base + ((uint32_t)i * BSP_FLASH_PAGE_SIZE);
 
         WDT_RESET_COUNTER();
-        ctx->flash->ReadWords(NowPageAddr, (uint32_t *)ctx->page_buf,
-                              BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
+        if (next_pre_staged) {
+            memcpy(ctx->page_buf, ctx->next_page_buf, BSP_FLASH_PAGE_SIZE);
+            next_pre_staged = 0u;
+        } else {
+            ctx->flash->ReadWords(NowPageAddr, (uint32_t *)ctx->page_buf,
+                                  BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
+        }
 
         /* ① Vector table (page 0 only) */
         if (i == 0u)
@@ -232,9 +249,11 @@ void PatchProcess(PatchCtx_t *ctx)
                         uint32_t pc_off    = (uint32_t)(instr_ptr[j - 2] & ADR_r0_OFFSET_Msk) * 4u;
                         size_t   byte_off  = (((j - 2u) * 2u) + pc_off + 4u)
                                              & (size_t)ALIGN_4Byte_Msk;
-                        JumpTable_Patcher(JmpAdrNum, byte_off,
-                                          ctx->page_buf, FwSize, i,
-                                          bank_base, ctx->flash, ctx->next_page_buf);
+                        if (JumpTable_Patcher(JmpAdrNum, byte_off,
+                                              ctx->page_buf, FwSize, i,
+                                              bank_base, ctx->flash, ctx->next_page_buf,
+                                              next_pre_staged))
+                            next_pre_staged = 1u;
                     }
                 }
             }

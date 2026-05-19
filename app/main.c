@@ -8,7 +8,7 @@
 #include "MeterV52PinConfig.h"
 #include "uart_drv.h"
 #include "BootloaderProcess.h"
-#include "patch_engine.h"
+#include "ota_offset_patcher.h"
 #include "Select_fw.h"
 #include "bl_fmc_adapter.h"
 #include "flash_service.h"
@@ -21,7 +21,6 @@
 void ReadMyDeviceID(void);
 
 uint8_t  MyDeviceID;
-uint32_t g_apromSize;
 
 void SYS_Init(void)
 {
@@ -65,12 +64,15 @@ void WDT_Init(void)
 
 int main(void)
 {
+    OtaApplyCtx_t apply_ctx;
+
     MeterV52PinConfig_init();
     SYS_UnlockReg();
 
     SYS_Init();
+    WDT_Init();
 
-    ReadMyDeviceID();           /* GPIO 已由 MeterV52PinConfig_init() 設定，可提早讀取 */
+    ReadMyDeviceID();
 
     UART1_Init(MyDeviceID);
     BL_SysTickInit();
@@ -78,25 +80,27 @@ int main(void)
 
     FlashService_Init(&g_bl_fmc_driver);
 
-    g_apromSize = APROM_SIZE;
+    LED_G_Off();
+    LED_R_Off();
 
     Boot_SelectFW();
 
-    /* 組裝 PatchCtx_t — 靜態欄位在迴圈外一次設定；動態欄位（bank_id/meta）於每次 OTA 完成後填入 */
-    PatchCtx_t patch_ctx;
-    patch_ctx.aprom_size    = g_apromSize;
-    patch_ctx.page_buf      = Aprom_Page_Buff;
-    patch_ctx.next_page_buf = Next_Aprom_Page_Buff;
-    patch_ctx.flash         = &g_bl_fmc_driver;
+    /* 靜態欄位：迴圈外一次設定 */
+    apply_ctx.page_buf = Aprom_Page_Buff;
+    apply_ctx.meta_buf = Next_Aprom_Page_Buff;
+    apply_ctx.flash    = &g_bl_fmc_driver;
 
     while (1)
     {
         BootloaderProcess();
 
-        /* BootloaderProcess() 僅在 OTA 成功（BL_OTA_DONE）後返回，此時 BankID/NewBankMeta 有效 */
-        patch_ctx.bank_id = BankID;
-        patch_ctx.meta    = &NewBankMeta;
-        PatchProcess(&patch_ctx);
+        /* BootloaderProcess() 僅在 OTA_DONE 後返回；BankID/NewBankMeta/OtaPayloadSize 此時有效 */
+        apply_ctx.target_bank  = BankID;
+        apply_ctx.meta         = &NewBankMeta;
+        apply_ctx.payload_size = OtaPayloadSize;
+
+        /* 成功：跳入 App，不返回。失敗：erase bank 後返回，迴圈重進 BootloaderProcess() */
+        OtaOffsetPatcher_Apply(&apply_ctx);
     }
 }
 

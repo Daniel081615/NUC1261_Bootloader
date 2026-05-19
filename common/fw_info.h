@@ -58,17 +58,16 @@ typedef struct {
     uint8_t  reserved[2];    /* 對齊 / 預留未來擴充 */
 } FW_Info_t;                 /* 8 bytes — Bug B3/B4 修正: 舊版只有 2 bytes */
 
-/* Bank 元資料結構，存放在 BANK0_META_BASE 或 BANK1_META_BASE (20 bytes) */
+/* Bank 元資料結構，存放在 BANK0_META_BASE 或 BANK1_META_BASE (16 bytes) */
 typedef struct {
-    uint8_t  usage;              /* FW_BankUsage_t */
-    uint8_t  health;             /* FW_Health_t */
-    uint8_t  trial_counter;      /* 未確認健康下的開機次數 */
+    uint8_t  usage;          /* FW_BankUsage_t */
+    uint8_t  health;         /* FW_Health_t */
+    uint8_t  trial_counter;  /* 未確認健康下的開機次數 */
     uint8_t  reserved;
-    uint32_t version;            /* 韌體版本號 */
-    uint32_t fw_size;            /* 韌體大小（bytes） */
-    uint32_t fw_crc32;           /* 韌體 CRC32（patch 後重新計算） */
-    uint32_t region_table_addr;  /* RegionTable 在韌體中的偏移（0=無需 patch） */
-} Bank_MetaInfo_t;               /* 20 bytes */
+    uint32_t version;        /* 韌體版本號 */
+    uint32_t fw_size;        /* raw 韌體大小（bytes，不含 OTA metadata page） */
+    uint32_t fw_crc32;       /* post-patch CRC32（由 ota_offset_patcher 計算後寫入） */
+} Bank_MetaInfo_t;           /* 16 bytes — region_table_addr 已移除，改用 offset-based patch */
 
 #pragma pack(pop)
 

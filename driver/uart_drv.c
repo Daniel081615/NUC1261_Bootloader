@@ -14,7 +14,7 @@
 /* Variables */
 static uint8_t s_device_id = 0u;
 
-_Bool   HostTokenReady;
+volatile _Bool HostTokenReady;
 
 uint8_t HOSTRxQ_wp, HOSTRxQ_rp, HOSTRxQ_cnt;
 uint8_t HOSTTxQ_wp, HOSTTxQ_rp, HOSTTxQ_cnt;

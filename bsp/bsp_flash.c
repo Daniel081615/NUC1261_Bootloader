@@ -150,7 +150,11 @@ void BSP_Flash_JumpToApp(uint32_t app_base) {
     // 9. 設定主堆疊指標 (Main Stack Pointer) 至 App 的設定值
     __set_MSP(msp_value);
 
-    // 10. 執行跳躍 (Jump)
+    // 10. 清除 PRIMASK — __disable_irq() 設定的遮罩不會被直接函式呼叫自動清除，
+    //     必須在跳入 App 前手動恢復，否則 App 內所有 ISR（UART、SysTick）永遠無法觸發。
+    __enable_irq();
+
+    // 11. 執行跳躍 (Jump)
     app_reset_handler();
 
     // 程式永遠不該執行到這裡，若發生異常則卡在死迴圈 (Infinite Loop)
@@ -168,5 +172,5 @@ uint32_t BSP_Flash_GetCRC32(uint32_t addr, uint32_t byte_len)
     if (BSP_Flash_IsValidAddr(addr, byte_len) != BSP_FLASH_OK)
         return 0xFFFFFFFFUL;
 
-    return FMC_GetCheckSum(addr, byte_len / 4U);
+    return FMC_GetCheckSum(addr, (int32_t)byte_len);
 }

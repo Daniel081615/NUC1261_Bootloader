@@ -30,7 +30,7 @@ extern void           BL_UART_SendRsp(uint8_t cmd,
 #define BL_WDT_Reset()  WDT_RESET_COUNTER()
 
 /* Extern variables */
-extern _Bool    HostTokenReady;
+extern volatile _Bool HostTokenReady;
 
 extern uint8_t HOSTRxQ_wp, HOSTRxQ_rp, HOSTRxQ_cnt;
 extern uint8_t HOSTTxQ_wp, HOSTTxQ_rp, HOSTTxQ_cnt;

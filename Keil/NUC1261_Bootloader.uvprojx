@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>NUC1261_Bootloader</TargetName>
+      <TargetName>Target_Base_0000</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <pArmCC>6230000::V6.23::ARMCLANG</pArmCC>
@@ -50,7 +50,7 @@
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
           <OutputDirectory>.\Objects\</OutputDirectory>
-          <OutputName>NUC1261_Bootloader</OutputName>
+          <OutputName>Target_Base_0000</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>0</CreateHexFile>
@@ -81,10 +81,10 @@
             <nStopB2X>0</nStopB2X>
           </BeforeMake>
           <AfterMake>
-            <RunUserProg1>0</RunUserProg1>
-            <RunUserProg2>0</RunUserProg2>
-            <UserProg1Name></UserProg1Name>
-            <UserProg2Name></UserProg2Name>
+            <RunUserProg1>1</RunUserProg1>
+            <RunUserProg2>1</RunUserProg2>
+            <UserProg1Name>fromelf --bin ".\objects\@L.axf" --output ".\objects\@L.bin"</UserProg1Name>
+            <UserProg2Name>fromelf --text -c ".\objects\@L.axf" --output ".\objects\@L.txt"</UserProg2Name>
             <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
             <UserProg2Dos16Mode>0</UserProg2Dos16Mode>
             <nStopA1X>0</nStopA1X>
@@ -421,16 +421,6 @@
           <GroupName>service</GroupName>
           <Files>
             <File>
-              <FileName>patch_engine.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\service\patch_engine.h</FilePath>
-            </File>
-            <File>
-              <FileName>patch_engine.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\service\patch_engine.c</FilePath>
-            </File>
-            <File>
               <FileName>flash_service.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\service\flash_service.h</FilePath>
@@ -454,6 +444,26 @@
               <FileName>ota_scheduler.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\service\ota_scheduler.h</FilePath>
+            </File>
+            <File>
+              <FileName>ota_offset_patcher.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\service\ota_offset_patcher.c</FilePath>
+            </File>
+            <File>
+              <FileName>ota_offset_patcher.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\service\ota_offset_patcher.h</FilePath>
+            </File>
+            <File>
+              <FileName>ota_patch_meta.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\service\ota_patch_meta.c</FilePath>
+            </File>
+            <File>
+              <FileName>ota_patch_meta.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\service\ota_patch_meta.h</FilePath>
             </File>
           </Files>
         </Group>

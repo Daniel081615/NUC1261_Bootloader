@@ -6,6 +6,7 @@
 #include "MyDef.h"
 #include "NUC1261.h"
 #include "MeterV52PinConfig.h"
+#include "fmc.h"
 #include "uart_drv.h"
 #include "BootloaderProcess.h"
 #include "ota_offset_patcher.h"
@@ -19,6 +20,7 @@
 #define PLL_CLOCK           71884800
 
 void ReadMyDeviceID(void);
+static void DataFlashConfig(void);
 
 uint8_t  MyDeviceID;
 
@@ -69,6 +71,8 @@ int main(void)
     MeterV52PinConfig_init();
     SYS_UnlockReg();
 
+    //DataFlashConfig();
+
     SYS_Init();
     WDT_Init();
 
@@ -112,4 +116,34 @@ void ReadMyDeviceID(void)
     if (PB5) MyDeviceID |= BIT3;
     if (PB6) MyDeviceID |= BIT4;
     if (PB7) MyDeviceID |= BIT5;
+}
+
+/* CONFIG0[1:0] = CBS (Config Boot Select):
+ *   00b = APROM + new IAP — required for FMC_SetVectorPageAddr (VECMAP).
+ * CONFIG1 = DFBA (Data Flash Base Address): must equal BSP_FW_INFO_BASE.
+ * If either setting is wrong this function self-corrects once and resets.
+ * Protected registers must already be unlocked by the caller. */
+static void DataFlashConfig(void)
+{
+    uint32_t au32Config[2];
+
+    FMC_Open();
+    FMC_ENABLE_CFG_UPDATE();
+
+    FMC_ReadConfig(au32Config, 2);
+
+    if ((au32Config[0] & 0x3UL) == 0x0UL && au32Config[1] == BSP_FW_INFO_BASE)
+    {
+        FMC_DISABLE_CFG_UPDATE();
+        FMC_Close();
+        return;
+    }
+
+    au32Config[0] &= ~0x3UL;           /* CBS → 00b: APROM + new IAP */
+    au32Config[1]  = BSP_FW_INFO_BASE; /* DFBA → 0x0001F800 */
+    FMC_Erase(FMC_CONFIG_BASE);
+    FMC_WriteConfig(au32Config, 2);
+
+    SYS_ResetChip();
+    while (1);                          /* unreachable — wait for reset */
 }

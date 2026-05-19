@@ -107,58 +107,15 @@ BSP_FLASH_Status BSP_Flash_ErasePage(uint32_t u32Addr)
 
 
 void BSP_Flash_JumpToApp(uint32_t app_base) {
-    // 1. 取得 Application 的初始堆疊指標 (Initial Stack Pointer, MSP)
-    uint32_t msp_value = *((volatile uint32_t *)app_base);
-    
-    // 檢查堆疊指標 (MSP) 是否落在合法的內部記憶體 (SRAM) 範圍內
-    if ((msp_value & 0x2FFE0000) != 0x20000000) {
-        return; 
-    }
-
-    // 2. 解鎖系統暫存器與開啟 FMC (System Unlock & FMC Open)
-    // 這是 Nuvoton 晶片的關鍵：必須解鎖才能操作快閃記憶體控制器 (FMC)
-    SYS_UnlockReg();
-    FMC_Open();
-
-    // 3. 設定硬體向量映射 (Vector Mapping)
-    // 將 0x00000000 的存取硬體重新導向至您的 app_base
-    FMC_SetVectorPageAddr(app_base);
-
-    // 4. 取得 Application 的程式進入點 (Reset Handler)
+    uint32_t msp_value    = *((volatile uint32_t *)app_base);
     uint32_t jump_address = *((volatile uint32_t *)(app_base + 4));
     void (*app_reset_handler)(void) = (void (*)(void))jump_address;
 
-    // 5. 關閉全域中斷 (Global Interrupts)
-    __disable_irq();
+    SYS_UnlockReg();
+    FMC_Open();
+    FMC_SetVectorPageAddr(app_base);
 
-    // 6. 關閉並清除系統滴答定時器 (SysTick)
-    SysTick->CTRL = 0;
-    SysTick->LOAD = 0;
-    SysTick->VAL  = 0;
-
-    // 7. 徹底禁用並清除巢狀向量中斷控制器 (NVIC) 的所有狀態
-    // 確保不會有任何 UART 或 Timer 的殘留中斷在 App 開機時誤觸發
-    // Cortex-M 家族通常有最多 8 個 NVIC 暫存器 (視支援的中斷數量而定，寫入 0xFFFFFFFF 會清除全部)
-    for (int i = 0; i < 8; i++) {
-        NVIC->ICER[i] = 0xFFFFFFFF; // 禁用中斷 (Interrupt Clear-Enable Register)
-        NVIC->ICPR[i] = 0xFFFFFFFF; // 清除待處理標誌 (Interrupt Clear-Pending Register)
-    }
-
-    // 8. 重新鎖定系統暫存器 (System Lock) - 安全考量
-    SYS_LockReg();
-
-    // 9. 設定主堆疊指標 (Main Stack Pointer) 至 App 的設定值
-    __set_MSP(msp_value);
-
-    // 10. 清除 PRIMASK — __disable_irq() 設定的遮罩不會被直接函式呼叫自動清除，
-    //     必須在跳入 App 前手動恢復，否則 App 內所有 ISR（UART、SysTick）永遠無法觸發。
-    __enable_irq();
-
-    // 11. 執行跳躍 (Jump)
-    app_reset_handler();
-
-    // 程式永遠不該執行到這裡，若發生異常則卡在死迴圈 (Infinite Loop)
-    while (1) {}
+    NVIC_SystemReset();
 }
 
 uint32_t BSP_Flash_GetCRC32(uint32_t addr, uint32_t byte_len)

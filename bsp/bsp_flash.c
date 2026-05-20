@@ -1,8 +1,5 @@
 #include "NUC1261.h"
 #include "bsp_flash.h"
-#include "fmc.h"
-
-//int32_t g_FMC_i32ErrCode;
 
 void BSP_Flash_Init(void)
 {

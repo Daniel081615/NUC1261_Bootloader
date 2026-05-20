@@ -146,9 +146,14 @@ BootloaderProcess_Init(device_id, &g_bl_ops)   <- inject DI
  |
 FlashService_Init()   <- open FMC access
  |
-Boot_SelectFW()
+Boot_SelectFW()                          <- return = enter OTA loop (single meaning)
  +--[BTLD_FORCE_BANK1/BANK2]      -> JumpToApp (maintenance, does not return)
  +--[BTLD_UPDATE_METER]           -> clear cmd, return -> enter OTA loop
+ +--[BTLD_PATCH]                  -> clear cmd, scan banks for INCOMING
+ |    +--[INCOMING found]         -> OtaOffsetPatcher_Apply()
+ |    |    +--[success]           -> JumpToApp (does not return)
+ |    |    +--[failure]           -> return -> enter OTA loop
+ |    +--[not found]              -> return -> enter OTA loop
  +--[active bank EMPTY/INCOMING]  -> try fallback to other bank if VALID/ACTIVE
  +--[trial_counter >= 3, other    -> rollback to CONFIRMED bank
       bank HEALTH_CONFIRMED]
@@ -352,6 +357,7 @@ typedef struct {
 |----------|-------|---------|
 | `BTLD_CMD_NONE` | 0xFF | Normal boot |
 | `BTLD_UPDATE_METER` | 0xA1 | App requests OTA entry |
+| `BTLD_PATCH` | 0xA2 | Resume interrupted patch on INCOMING bank (skip OTA receive) |
 | `BTLD_FORCE_BANK1` | 0x11 | Force jump to Bank0 (maintenance) |
 | `BTLD_FORCE_BANK2` | 0x12 | Force jump to Bank1 (maintenance) |
 | `BANK_USAGE_EMPTY` | 0xFF | Flash erased / unused |

@@ -56,7 +56,7 @@ common/       → stdint.h only            (fw_info.h — shared with App)
 |---|---|---|
 | app | `main.c` | Composition root: wires `BL_ProtocolOps_t` DI struct, calls `Boot_SelectFW()`, main loop |
 | app | `BootloaderProcess.c/.h` | OTA state machine (`IDLE→READY→RECEIVING→DONE`), frame parsing, DI interface |
-| service | `Select_fw.c/.h` | Boot bank selection, trial_counter increment, rollback logic, JumpToApp |
+| service | `Select_fw.c/.h` | Boot bank selection, rollback logic, BTLD_PATCH resume (calls `OtaOffsetPatcher_Apply`), JumpToApp |
 | service | `flash_service.c/.h` | Flash abstraction: FW_Info r/w, BankMeta r/w, erase/write/CRC, JumpToApp |
 | service | `ota_offset_patcher.c/.h` | Post-OTA patch via offset list; updates BankMeta; triggers JumpToApp |
 | service | `ota_patch_meta.c/.h` | Reads/validates the metadata page appended to every OTA payload |
@@ -79,8 +79,8 @@ common/       → stdint.h only            (fw_info.h — shared with App)
 2. `HAL_UART_Init(device_id)` + `HAL_SysTick_Init()`
 3. `BootloaderProcess_Init(device_id, &g_bl_ops)` — inject DI function pointers
 4. `FlashService_Init()` — opens FMC access
-5. `Boot_SelectFW()` — reads `FW_Info_t`; handles forced-jump, OTA trigger, rollback, trial_counter; calls `FlashService_JumpToApp()` (does not return on normal boot)
-6. Falls through to `while(1)` only when `cmd == BTLD_UPDATE_METER` or no valid bank
+5. `Boot_SelectFW()` — reads `FW_Info_t`; handles forced-jump / OTA trigger / patch-resume / rollback / trial_counter; calls `FlashService_JumpToApp()` on normal boot (does not return). Return has one meaning: enter OTA receive loop.
+6. Returns to `while(1)` when: `cmd == BTLD_UPDATE_METER`, `cmd == BTLD_PATCH` with patch failure or no INCOMING bank, or no valid bank to jump into
 
 ### UART protocol
 - Fixed 100-byte frames: `[0x55][DeviceID][CMD][...payload (96 bytes)...][Checksum][0x0A]`
@@ -135,10 +135,11 @@ Max offsets: (2048 - 20) / 4 = 507
 
 ### Boot_SelectFW rollback logic (`Select_fw.c`)
 1. `BTLD_FORCE_BANK1/BANK2` → jump directly (maintenance mode)
-2. `BTLD_UPDATE_METER` → clear cmd, return to `main.c` → enter OTA loop
-3. Active bank `EMPTY` or `INCOMING` → fallback to other bank if `VALID/ACTIVE`
-4. `trial_counter >= 3` and other bank `HEALTH_CONFIRMED` → switch (rollback)
-5. Increment `trial_counter`; jump to selected bank
+2. `BTLD_UPDATE_METER` → clear cmd, return → enter OTA loop
+3. `BTLD_PATCH` → clear cmd; scan both banks for `BANK_USAGE_INCOMING`; call `OtaOffsetPatcher_Apply()` → JumpToApp on success; return → enter OTA loop on failure or no INCOMING bank found
+4. Active bank `EMPTY` or `INCOMING` → fallback to other bank if `VALID/ACTIVE`
+5. `trial_counter >= 3` and other bank `HEALTH_CONFIRMED` → switch (rollback)
+6. Increment `trial_counter`; jump to selected bank
 
 ## Key Constraints
 

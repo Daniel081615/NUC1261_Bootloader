@@ -485,11 +485,6 @@
               <FilePath>..\..\..\NUC1261BSP-master\Library\StdDriver\src\clk.c</FilePath>
             </File>
             <File>
-              <FileName>crc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\NUC1261BSP-master\Library\StdDriver\src\crc.c</FilePath>
-            </File>
-            <File>
               <FileName>fmc.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\NUC1261BSP-master\Library\StdDriver\src\fmc.c</FilePath>

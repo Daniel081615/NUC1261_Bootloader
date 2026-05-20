@@ -22,7 +22,8 @@ typedef enum {
 /* Bootloader command: 控制下一次 reset 時 Bootloader 行為 */
 typedef enum {
     BTLD_CMD_NONE        = 0xFF, /* 正常開機：依 active_bank / bank_usage 選擇 Bank 跳入 */
-    BTLD_UPDATE_METER    = 0xA1, /* App 觸發 OTA：BL 進入 OTA 接收主迴圈 (Bug B5 修正) */
+    BTLD_UPDATE_METER    = 0xA1, /* App 觸發 OTA：BL 進入 OTA 接收主迴圈 */
+    BTLD_PATCH           = 0xA2, /* BL 直接對 INCOMING bank 執行 offset patch，跳過接收 */
     BTLD_FORCE_BANK1     = 0x11, /* 強制跳入 Bank 0 (維修用) */
     BTLD_FORCE_BANK2     = 0x12, /* 強制跳入 Bank 1 (維修用) */
 } FW_BtldCmd_t;
@@ -49,19 +50,19 @@ typedef enum {
 
 /* Data Flash 中的共用 FW_Info 結構（單一一份, 8 bytes） */
 typedef struct {
-    uint8_t  active_bank;    /* FW_BankId_t：0=Bank0, 1=Bank1 (0-indexed) */
-    uint8_t  cmd;            /* FW_BtldCmd_t：控制 Bootloader 特殊行為 */
-    uint8_t  bank0_usage;    /* FW_BankUsage_t：Bank0 目前的用途 */
-    uint8_t  bank1_usage;    /* FW_BankUsage_t：Bank1 目前的用途 */
-    uint8_t  health;         /* FW_Health_t：ACTIVE 版本是否已被 App 確認健康 */
+    FW_BankId_t  		active_bank;    /* FW_BankId_t：0=Bank0, 1=Bank1 (0-indexed) */
+    FW_BtldCmd_t  	cmd;            /* FW_BtldCmd_t：控制 Bootloader 特殊行為 */
+    FW_BankUsage_t  bank0_usage;    /* FW_BankUsage_t：Bank0 目前的用途 */
+    FW_BankUsage_t  bank1_usage;    /* FW_BankUsage_t：Bank1 目前的用途 */
+    FW_Health_t  		health;         /* FW_Health_t：ACTIVE 版本是否已被 App 確認健康 */
     uint8_t  trial_counter;  /* 未確認健康狀態下的開機次數（供 Bootloader 判斷 rollback） */
     uint8_t  reserved[2];    /* 對齊 / 預留未來擴充 */
 } FW_Info_t;                 /* 8 bytes — Bug B3/B4 修正: 舊版只有 2 bytes */
 
 /* Bank 元資料結構，存放在 BANK0_META_BASE 或 BANK1_META_BASE (16 bytes) */
 typedef struct {
-    uint8_t  usage;          /* FW_BankUsage_t */
-    uint8_t  health;         /* FW_Health_t */
+    FW_BankUsage_t  usage;          /* FW_BankUsage_t */
+    FW_Health_t  		health;         /* FW_Health_t */
     uint8_t  trial_counter;  /* 未確認健康下的開機次數 */
     uint8_t  reserved;
     uint32_t version;        /* 韌體版本號 */

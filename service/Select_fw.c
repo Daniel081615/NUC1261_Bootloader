@@ -1,11 +1,12 @@
 /******************************************************************************
  * @file     Select_fw.c
- * @brief    開機韌體選擇與跳轉邏輯（重構版）
+ * @brief    開機韌體選擇與跳轉邏輯
  *           使用 FW_Info_t + FlashService API，修正 Bug B1/B2/B5
  ******************************************************************************/
 
 #include "Select_fw.h"
 #include "flash_service.h"
+#include "ota_offset_patcher.h"
 #include "fw_info.h"
 
 void Boot_SelectFW(void)
@@ -27,15 +28,43 @@ void Boot_SelectFW(void)
         FlashService_JumpToApp(FlashService_GetBankBase(target));   /* 不返回 */
     }
 
-    /* ② App 觸發 OTA (Bug B5 修正: BTLD_UPDATE_METER=0xA1 取代舊 0x01) */
+    /* ② App 觸發 OTA */
     if (fw.cmd == (uint8_t)BTLD_UPDATE_METER)
     {
         fw.cmd = (uint8_t)BTLD_CMD_NONE;
         FlashService_UpdateFWInfo(&fw);
-        return;   /* 返回 → main.c 執行 BootloaderProcess() */
+        return;
     }
 
-    /* ③ 健康檢查：Active bank 空白或仍在接收 → 嘗試 Rollback */
+    /* ③ 跳過接收，直接 patch INCOMING bank（OTA 後斷電繼續 patch） */
+    if (fw.cmd == (uint8_t)BTLD_PATCH)
+    {
+        static Bank_MetaInfo_t s_patch_meta;
+        OtaApplyCtx_t          apply_ctx;
+        uint8_t                bank;
+
+        fw.cmd = (uint8_t)BTLD_CMD_NONE;
+        FlashService_UpdateFWInfo(&fw);
+
+        for (bank = 0u; bank < 2u; bank++)
+        {
+            FlashService_ReadBankMeta(bank, &s_patch_meta);
+            if (s_patch_meta.usage == (uint8_t)BANK_USAGE_INCOMING &&
+                s_patch_meta.fw_size > 0u)
+            {
+                uint32_t fw_pages        = (s_patch_meta.fw_size + FLASH_SVC_PAGE_SIZE - 1u)
+                                           / FLASH_SVC_PAGE_SIZE;
+                apply_ctx.target_bank  = bank;
+                apply_ctx.meta         = &s_patch_meta;
+                apply_ctx.payload_size = (fw_pages + 1u) * FLASH_SVC_PAGE_SIZE;
+                OtaOffsetPatcher_Apply(&apply_ctx);   /* 成功不返回；失敗繼續 */
+                break;
+            }
+        }
+        return;   /* 無 INCOMING bank 或 patch 失敗 → 退回 OTA 接收 */
+    }
+
+    /* ④ 健康檢查：Active bank 空白或仍在接收 → 嘗試 Rollback */
     FlashService_ReadBankMeta(fw.active_bank, &meta);
 
     if (meta.usage == (uint8_t)BANK_USAGE_EMPTY ||
@@ -53,7 +82,7 @@ void Boot_SelectFW(void)
         }
     }
 
-    /* ④ 啟動計數保護：≥3 次未確認 → 嘗試切換到已確認的 Rollback Bank */
+    /* ⑤ 啟動計數保護：≥3 次未確認 → 嘗試切換到已確認的 Rollback Bank */
     if (meta.trial_counter >= 3u)
     {
         fb = (fw.active_bank == 0u) ? 1u : 0u;
@@ -67,15 +96,15 @@ void Boot_SelectFW(void)
             meta.trial_counter = 0u;
         }
         /* 若 Rollback Bank 也不健康：仍嘗試跳，讓 App 決定是否求救 */
-				
-				return;
+
+        return;
     }
 
-    /* ⑤ 遞增 trial_counter，App 確認健康後可將其歸零 */
+    /* ⑥ 遞增 trial_counter，App 確認健康後可將其歸零 */
     meta.trial_counter++;
     FlashService_UpdateBankMeta(fw.active_bank, &meta);
 
-    /* ⑥ 跳入 App — 不返回 */
+    /* ⑦ 跳入 App — 不返回 */
     FlashService_JumpToApp(FlashService_GetBankBase(fw.active_bank));
 
     while (1) {}   /* 安全哨 */

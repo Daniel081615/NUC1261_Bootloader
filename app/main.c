@@ -42,7 +42,7 @@ int main(void)
 
     FlashService_Init();
 
-    Boot_SelectFW();
+    Boot_SelectFW();   /* 返回唯一語意：進入 OTA 接收主迴圈 */
 
     while (1)
     {

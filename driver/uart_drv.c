@@ -15,6 +15,7 @@
 /* ================================================================
  *  Private storage
  * ============================================================== */
+static volatile _Bool HostTokenReady;
 static uint8_t s_device_id = 0u;
 static uint8_t s_rx_buf[MAX_UART_PACKET_LENGTH];
 static uint8_t s_tx_buf[MAX_UART_PACKET_LENGTH];
@@ -27,7 +28,6 @@ UART_Channel_t g_uart_host;
 /* ================================================================
  *  Token buffer (ISR → main loop)
  * ============================================================== */
-volatile _Bool HostTokenReady;
 uint8_t        HostToken   [MAX_UART_PACKET_LENGTH];
 uint8_t        HostTxBuffer[MAX_UART_PACKET_LENGTH];
 

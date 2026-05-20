@@ -477,21 +477,6 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>driver</GroupName>
-          <Files>
-            <File>
-              <FileName>uart_drv.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\driver\uart_drv.h</FilePath>
-            </File>
-            <File>
-              <FileName>uart_drv.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\driver\uart_drv.c</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
           <GroupName>Library</GroupName>
           <Files>
             <File>
@@ -572,6 +557,31 @@
           </Files>
         </Group>
         <Group>
+          <GroupName>driver</GroupName>
+          <Files>
+            <File>
+              <FileName>drv_sys.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\driver\drv_sys.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_sys.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\driver\drv_sys.h</FilePath>
+            </File>
+            <File>
+              <FileName>uart_drv.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\driver\uart_drv.c</FilePath>
+            </File>
+            <File>
+              <FileName>uart_drv.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\driver\uart_drv.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
           <GroupName>bsp</GroupName>
           <Files>
             <File>
@@ -613,6 +623,16 @@
               <FileName>bsp_uart.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\bsp\bsp_uart.h</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_gpio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\bsp_gpio.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_gpio.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\bsp\bsp_gpio.h</FilePath>
             </File>
           </Files>
         </Group>

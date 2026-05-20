@@ -41,7 +41,6 @@ extern UART_Channel_t g_uart_host;
 /* ================================================================
  *  Token buffer (ISR → main loop)
  * ============================================================== */
-extern volatile _Bool HostTokenReady;
 extern uint8_t        HostToken   [MAX_UART_PACKET_LENGTH];
 extern uint8_t        HostTxBuffer[MAX_UART_PACKET_LENGTH];
 

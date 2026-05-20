@@ -105,11 +105,8 @@ BSP_FLASH_Status BSP_Flash_ErasePage(uint32_t u32Addr)
 }
 
 
-void BSP_Flash_JumpToApp(uint32_t app_base) {
-    uint32_t msp_value    = *((volatile uint32_t *)app_base);
-    uint32_t jump_address = *((volatile uint32_t *)(app_base + 4));
-    void (*app_reset_handler)(void) = (void (*)(void))jump_address;
-
+void BSP_Flash_JumpToApp(uint32_t app_base) 
+{
     SYS_UnlockReg();
     FMC_Open();
     FMC_SetVectorPageAddr(app_base);

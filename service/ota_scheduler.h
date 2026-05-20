@@ -14,6 +14,7 @@ typedef enum {
 } OtaCommand_t;
 
 /* OTA 通訊參數 */
+#define BL_FRAME_SIZE         100u   /* UART 固定幀長（含 head/dev/cmd/chk/tail） */
 #define OTA_CHUNK_SIZE        88u    /* 每包資料 bytes */
 #define OTA_RECV_TIMEOUT_MS   5000u  /* 接收逾時 ms */
 

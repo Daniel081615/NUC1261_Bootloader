@@ -10,11 +10,8 @@
  *  - transport CRC 覆蓋整個 payload（payload_size bytes）
  ******************************************************************************/
 
-#include "NUC1261.h"
-#include "MyDef.h"
 #include "BootloaderProcess.h"
 #include "flash_service.h"
-#include "uart_drv.h"
 #include <string.h>
 
 /* ─── OTA State Machine ─── */
@@ -42,15 +39,17 @@ typedef struct {
 uint8_t         BankID;
 Bank_MetaInfo_t NewBankMeta;
 uint32_t        OtaPayloadSize;
-__attribute__((aligned(4))) uint8_t Aprom_Page_Buff[BSP_FLASH_PAGE_SIZE];
-__attribute__((aligned(4))) uint8_t Next_Aprom_Page_Buff[BSP_FLASH_PAGE_SIZE];
 
-static BL_OtaCtx_t s_ctx;
-static uint8_t     s_device_id = 0u;
+static __attribute__((aligned(4))) uint8_t s_chunk_buf[FLASH_SVC_PAGE_SIZE];
 
-void BootloaderProcess_Init(uint8_t device_id)
+static BL_OtaCtx_t             s_ctx;
+static uint8_t                 s_device_id = 0u;
+static const BL_ProtocolOps_t *s_ops       = NULL;
+
+void BootloaderProcess_Init(uint8_t device_id, const BL_ProtocolOps_t *ops)
 {
     s_device_id = device_id;
+    s_ops       = ops;
 }
 
 /* ─── Static Handler Declarations ─── */
@@ -64,7 +63,7 @@ static void HandleEnterReq(void)
     FW_Info_t fw;
     uint8_t   active;
 
-    FlashService_ReadFWInfo(&fw);
+    s_ops->flash_read_fw_info(&fw);
     active = fw.active_bank;
 
     if (active == (uint8_t)FW_BANK_0)
@@ -75,11 +74,11 @@ static void HandleEnterReq(void)
         s_ctx.target_bank = (uint8_t)FW_BANK_0;  /* 無有效 active bank 時預設 Bank0 */
 
     s_ctx.state       = BL_OTA_READY;
-    s_ctx.deadline_ms = BL_GetTickMs() + OTA_RECV_TIMEOUT_MS;
+    s_ctx.deadline_ms = s_ops->get_tick_ms() + OTA_RECV_TIMEOUT_MS;
 
     {
         uint8_t enter_rsp[2] = { FLAG_OTA_UPDATE, s_ctx.target_bank };
-        BL_UART_SendRsp(OTA_CMD_ENTER_RSP, enter_rsp, 2u);
+        s_ops->uart_send_rsp(OTA_CMD_ENTER_RSP, enter_rsp, 2u);
     }
 }
 
@@ -100,24 +99,24 @@ static void HandleUpdateReq(const uint8_t *pl, uint16_t len)
 
     /* 合法性：page 對齊、不超出 bank、至少有一頁 metadata */
     if (s_ctx.payload_size == 0u ||
-        (s_ctx.payload_size % BSP_FLASH_PAGE_SIZE) != 0u ||
-        s_ctx.payload_size > BSP_BANK_SIZE ||
+        (s_ctx.payload_size % FLASH_SVC_PAGE_SIZE) != 0u ||
+        s_ctx.payload_size > FLASH_SVC_BANK_SIZE ||
         s_ctx.fw_image_size == 0u ||
         s_ctx.fw_image_size >= s_ctx.payload_size)
     {
         rsp = 0xFFu;
-        BL_UART_SendRsp(OTA_CMD_ERROR_RSP, &rsp, 1u);
+        s_ops->uart_send_rsp(OTA_CMD_ERROR_RSP, &rsp, 1u);
         s_ctx.state = BL_OTA_ERROR;
         return;
     }
 
-    FlashService_EraseBank(s_ctx.target_bank);
+    s_ops->flash_erase_bank(s_ctx.target_bank);
 
     s_ctx.state       = BL_OTA_RECEIVING;
-    s_ctx.deadline_ms = BL_GetTickMs() + OTA_RECV_TIMEOUT_MS;
+    s_ctx.deadline_ms = s_ops->get_tick_ms() + OTA_RECV_TIMEOUT_MS;
 
     rsp = 0x00u;
-    BL_UART_SendRsp(OTA_CMD_STATUS_RSP, &rsp, 1u);
+    s_ops->uart_send_rsp(OTA_CMD_STATUS_RSP, &rsp, 1u);
 }
 
 /* ─── HandleStoreReq ─────────────────────────────────────────────────────── */
@@ -139,21 +138,21 @@ static void HandleStoreReq(const uint8_t *pl, uint16_t len)
     write_len         = (remaining > (uint32_t)OTA_CHUNK_SIZE) ? (uint32_t)OTA_CHUNK_SIZE : remaining;
     write_len_aligned = (write_len + 3u) & ~3u;
 
-    memset(Aprom_Page_Buff, 0xFFu, write_len_aligned);
-    memcpy(Aprom_Page_Buff, data, write_len);
+    memset(s_chunk_buf, 0xFFu, write_len_aligned);
+    memcpy(s_chunk_buf, data, write_len);
 
-    FlashService_WriteFirmware(s_ctx.target_bank, chunk_offset,
-                               (const uint8_t *)Aprom_Page_Buff, write_len_aligned);
+    s_ops->flash_write_fw(s_ctx.target_bank, chunk_offset,
+                          (const uint8_t *)s_chunk_buf, write_len_aligned);
 
     s_ctx.rx_offset   = chunk_offset + write_len;
-    s_ctx.deadline_ms = BL_GetTickMs() + OTA_RECV_TIMEOUT_MS;
+    s_ctx.deadline_ms = s_ops->get_tick_ms() + OTA_RECV_TIMEOUT_MS;
 
     if (s_ctx.rx_offset >= s_ctx.payload_size)
     {
         /* transport CRC 覆蓋整個 payload（fw + metadata page） */
-        if (FlashService_VerifyBankCRC(s_ctx.target_bank,
-                                       s_ctx.payload_size,
-                                       s_ctx.transport_crc32))
+        if (s_ops->flash_verify_crc(s_ctx.target_bank,
+                                    s_ctx.payload_size,
+                                    s_ctx.transport_crc32))
         {
             uint8_t rsp;
 
@@ -169,25 +168,25 @@ static void HandleStoreReq(const uint8_t *pl, uint16_t len)
             s_ctx.state = BL_OTA_DONE;
 
             rsp = 0x00u;
-            BL_UART_SendRsp(OTA_CMD_STATUS_RSP, &rsp, 1u);
+            s_ops->uart_send_rsp(OTA_CMD_STATUS_RSP, &rsp, 1u);
         }
         else
         {
             uint8_t rsp;
 
-            FlashService_EraseBank(s_ctx.target_bank);
+            s_ops->flash_erase_bank(s_ctx.target_bank);
             s_ctx.rx_offset = 0u;
             s_ctx.state     = BL_OTA_ERROR;
 
             rsp = 0xFFu;
-            BL_UART_SendRsp(OTA_CMD_ERROR_RSP, &rsp, 1u);
+            s_ops->uart_send_rsp(OTA_CMD_ERROR_RSP, &rsp, 1u);
         }
     }
     else
     {
         uint8_t rsp[4];
         memcpy(rsp, &s_ctx.rx_offset, sizeof(uint32_t));
-        BL_UART_SendRsp(OTA_CMD_STATUS_RSP, rsp, (uint16_t)sizeof(rsp));
+        s_ops->uart_send_rsp(OTA_CMD_STATUS_RSP, rsp, (uint16_t)sizeof(rsp));
     }
 }
 
@@ -205,27 +204,27 @@ void BootloaderProcess(void)
 
     while (1)
     {
-        BL_WDT_Reset();
-        BL_UART_Poll();
+        s_ops->wdt_feed();
+        s_ops->uart_poll();
 
         if (s_ctx.state != BL_OTA_IDLE && s_ctx.state != BL_OTA_DONE)
         {
-            if (BL_GetTickMs() >= s_ctx.deadline_ms)
+            if (s_ops->get_tick_ms() >= s_ctx.deadline_ms)
                 s_ctx.state = BL_OTA_IDLE;
         }
 
         if (s_ctx.state == BL_OTA_DONE)
             return;   /* OtaOffsetPatcher_Apply() 在 main 迴圈接手 */
 
-        if (!BL_UART_HasPacket())
+        if (!s_ops->uart_has_packet())
             continue;
 
-        pkt = BL_UART_GetPacket();
+        pkt = s_ops->uart_get_packet();
 
         chk = 0u;
-        for (i = 1u; i < (MAX_UART_PACKET_LENGTH - 2u); i++)
+        for (i = 1u; i < (BL_FRAME_SIZE - 2u); i++)
             chk += pkt[i];
-        if (pkt[MAX_UART_PACKET_LENGTH - 2u] != chk)
+        if (pkt[BL_FRAME_SIZE - 2u] != chk)
             continue;
 
         if (pkt[1u] != s_device_id)
@@ -234,7 +233,7 @@ void BootloaderProcess(void)
         cmd = pkt[2u];
         pl  = &pkt[3u];
 
-        LED_R_TOGGLE();
+        s_ops->led_toggle();
 
         switch (cmd)
         {
@@ -244,7 +243,7 @@ void BootloaderProcess(void)
 
             case OTA_CMD_UPDATE_CHILD_REQ:
                 if (s_ctx.state == BL_OTA_READY)
-                    HandleUpdateReq(pl, (uint16_t)(MAX_UART_PACKET_LENGTH - 5u));
+                    HandleUpdateReq(pl, (uint16_t)(BL_FRAME_SIZE - 5u));
                 break;
 
             case OTA_CMD_STORE_CHILD_REQ:
@@ -255,7 +254,7 @@ void BootloaderProcess(void)
             case METER_CMD_ALIVE:
             {
                 uint8_t rsp[2] = { FLAG_OTA_UPDATE, 0xFFu };
-                BL_UART_SendRsp(METER_RSP_SYS_INFO, rsp, (uint16_t)sizeof(rsp));
+                s_ops->uart_send_rsp(METER_RSP_SYS_INFO, rsp, (uint16_t)sizeof(rsp));
                 break;
             }
 

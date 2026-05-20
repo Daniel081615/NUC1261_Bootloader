@@ -3,29 +3,19 @@
 
 #include <stdint.h>
 #include "fw_info.h"
-#include "bsp_flash.h"
 
-/*
- * IFmcDriver_t — FMC 驅動介面
- * bl_fmc_adapter.c 實作此介面，將 BSP_Flash_* 橋接進來。
- */
-typedef struct {
-    int32_t  (*Init)(void);
-    int32_t  (*ErasePage)(uint32_t addr);
-    int32_t  (*WriteWords)(uint32_t addr, const uint32_t *data, uint32_t word_cnt);
-    void     (*ReadWords)(uint32_t addr, uint32_t *data, uint32_t word_cnt);
-    uint32_t (*GetCRC32)(uint32_t addr, uint32_t byte_len);
-    void     (*JumpToApp)(uint32_t app_base);
-} IFmcDriver_t;
+/* Flash geometry constants — service-layer consumers use these instead of bsp_flash.h. */
+#define FLASH_SVC_PAGE_SIZE  2048U        /* must equal BSP_FLASH_PAGE_SIZE */
+#define FLASH_SVC_BANK_SIZE  0x0000E000U  /* must equal BSP_BANK_SIZE (56 KB) */
 
 /* ─── 初始化 ─── */
-void FlashService_Init(const IFmcDriver_t *drv);
+void FlashService_Init(void);   /* calls BSP_Flash_Init() directly */
 
 /* ─── FW_Info 讀寫 (Data Flash at BSP_FW_INFO_BASE) ─── */
 void    FlashService_ReadFWInfo(FW_Info_t *fw);
 int32_t FlashService_UpdateFWInfo(const FW_Info_t *fw);
 
-/* ─── Bank Meta 讀寫 (at BSP_BANK0/1_META_BASE) ─── */
+/* ─── Bank Meta 讀寫 ─── */
 void    FlashService_ReadBankMeta(uint8_t bank, Bank_MetaInfo_t *meta);
 int32_t FlashService_UpdateBankMeta(uint8_t bank, const Bank_MetaInfo_t *meta);
 
@@ -35,7 +25,15 @@ int32_t FlashService_WriteFirmware(uint8_t bank, uint32_t offset,
                                    const uint8_t *data, uint32_t byte_len);
 _Bool   FlashService_VerifyBankCRC(uint8_t bank, uint32_t fw_size, uint32_t expected_crc);
 
+/* ─── 低層 flash 操作（供 service 層內部模組使用） ─── */
+uint32_t FlashService_GetBankBase(uint8_t bank);
+void     FlashService_ReadPage(uint32_t addr, uint32_t *buf, uint32_t word_cnt);
+int32_t  FlashService_EraseSinglePage(uint32_t addr);
+int32_t  FlashService_WritePageWords(uint32_t addr, const uint32_t *buf, uint32_t word_cnt);
+uint32_t FlashService_CalcCRC32(uint32_t addr, uint32_t byte_len);
+
 /* ─── 跳入 App ─── */
 void FlashService_JumpToApp(uint32_t app_base);
+void FlashService_JumpToBank(uint8_t bank);
 
 #endif /* FLASH_SERVICE_H */

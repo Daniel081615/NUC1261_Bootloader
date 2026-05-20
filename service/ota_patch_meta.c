@@ -3,23 +3,24 @@
  * @brief    OTA metadata page 讀取與驗證
  ******************************************************************************/
 
+#include <string.h>
 #include "ota_patch_meta.h"
+#include "flash_service.h"
 
-int32_t OtaPatchMeta_ReadAndValidate(const IFmcDriver_t *flash,
-                                      uint32_t            meta_page_addr,
-                                      uint8_t            *meta_buf,
-                                      uint32_t            fw_image_size)
+int32_t OtaPatchMeta_ReadAndValidate(uint32_t meta_page_addr,
+                                      uint8_t *meta_buf,
+                                      uint32_t fw_image_size)
 {
     const OtaPatchMeta_t *hdr;
     const uint32_t       *offsets;
     uint32_t              i;
     uint32_t              prev;
 
-    if (flash == NULL || meta_buf == NULL || fw_image_size == 0u)
+    if (meta_buf == NULL || fw_image_size == 0u)
         return OTA_META_ERR_PARAM;
 
-    flash->ReadWords(meta_page_addr, (uint32_t *)(void *)meta_buf,
-                     BSP_FLASH_PAGE_SIZE / sizeof(uint32_t));
+    FlashService_ReadPage(meta_page_addr, (uint32_t *)(void *)meta_buf,
+                          OTA_META_PAGE_SIZE / sizeof(uint32_t));
 
     hdr = OtaPatchMeta_Header(meta_buf);
 

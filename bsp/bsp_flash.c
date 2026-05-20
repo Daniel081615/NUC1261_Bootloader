@@ -13,7 +13,6 @@ void BSP_Flash_Init(void)
      * FW_Info (FW_INFO_BASE 0x1F800) lives in Data Flash. */
     FMC_Open();
     FMC_ENABLE_AP_UPDATE();
-    //FMC_ENABLE_DF_UPDATE();   /* Data Flash (FW_Info 0x1F800) 寫入需要獨立開啟 */
 }
 
 void BSP_Flash_DeInit(void)
@@ -130,4 +129,30 @@ uint32_t BSP_Flash_GetCRC32(uint32_t addr, uint32_t byte_len)
         return 0xFFFFFFFFUL;
 
     return FMC_GetCheckSum(addr, (int32_t)byte_len);
+}
+
+/* Logic extracted verbatim from DataFlashConfig() in original main.c. */
+void BSP_Flash_ConfigVerifyAndFix(void)
+{
+    uint32_t au32Config[2];
+
+    FMC_Open();
+    FMC_ENABLE_CFG_UPDATE();
+
+    FMC_ReadConfig(au32Config, 2);
+
+    if ((au32Config[0] & 0x3UL) == 0x0UL && au32Config[1] == BSP_FW_INFO_BASE)
+    {
+        FMC_DISABLE_CFG_UPDATE();
+        FMC_Close();
+        return;
+    }
+
+    au32Config[0] &= ~0x3UL;           /* CBS -> 00b: APROM + new IAP */
+    au32Config[1]  = BSP_FW_INFO_BASE; /* DFBA -> 0x0001F800 */
+    FMC_Erase(FMC_CONFIG_BASE);
+    FMC_WriteConfig(au32Config, 2);
+
+    SYS_ResetChip();
+    while (1) {}                        /* unreachable — wait for reset */
 }

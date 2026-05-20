@@ -7,12 +7,6 @@
 #include "Select_fw.h"
 #include "flash_service.h"
 #include "fw_info.h"
-#include "bsp_flash.h"
-
-static uint32_t GetBankBase(uint8_t bank_index)
-{
-    return (bank_index == 0u) ? BSP_BANK0_BASE : BSP_BANK1_BASE;
-}
 
 void Boot_SelectFW(void)
 {
@@ -30,7 +24,7 @@ void Boot_SelectFW(void)
         uint8_t target = (fw.cmd == (uint8_t)BTLD_FORCE_BANK1) ? 0u : 1u;
         fw.cmd = (uint8_t)BTLD_CMD_NONE;
         FlashService_UpdateFWInfo(&fw);
-        FlashService_JumpToApp(GetBankBase(target));   /* 不返回 */
+        FlashService_JumpToApp(FlashService_GetBankBase(target));   /* 不返回 */
     }
 
     /* ② App 觸發 OTA (Bug B5 修正: BTLD_UPDATE_METER=0xA1 取代舊 0x01) */
@@ -82,7 +76,7 @@ void Boot_SelectFW(void)
     FlashService_UpdateBankMeta(fw.active_bank, &meta);
 
     /* ⑥ 跳入 App — 不返回 */
-    FlashService_JumpToApp(GetBankBase(fw.active_bank));
+    FlashService_JumpToApp(FlashService_GetBankBase(fw.active_bank));
 
     while (1) {}   /* 安全哨 */
 }

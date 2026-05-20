@@ -60,5 +60,11 @@ void             BSP_Flash_ReadWords(uint32_t addr,
 void             BSP_Flash_JumpToApp(uint32_t app_base);
 uint32_t         BSP_Flash_GetCRC32(uint32_t addr, uint32_t byte_len);
 
+/*
+ * Verify CONFIG0 (CBS=APROM+IAP) and CONFIG1 (DFBA=BSP_FW_INFO_BASE);
+ * rewrite and chip-reset if either is wrong. Caller must have called
+ * SYS_UnlockReg() first. Mirrors the original DataFlashConfig() in main.c.
+ */
+void             BSP_Flash_ConfigVerifyAndFix(void);
 
 #endif

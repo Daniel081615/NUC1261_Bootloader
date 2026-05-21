@@ -92,19 +92,39 @@ void Boot_SelectFW(void)
         {
             fw.active_bank = fb;
             FlashService_UpdateFWInfo(&fw);
-            meta = fb_meta;
-            meta.trial_counter = 0u;
+            fb_meta.trial_counter = 0u;
+            FlashService_UpdateBankMeta(fb, &fb_meta);
+            FlashService_JumpToApp(FlashService_GetBankBase(fb));   /* 不返回 */
         }
-        /* 若 Rollback Bank 也不健康：仍嘗試跳，讓 App 決定是否求救 */
-
-        return;
+        /* 若 Rollback Bank 也不健康：進入 OTA 接收等待新韌體 */
     }
 
     /* ⑥ 遞增 trial_counter，App 確認健康後可將其歸零 */
     meta.trial_counter++;
     FlashService_UpdateBankMeta(fw.active_bank, &meta);
 
-    /* ⑦ 跳入 App — 不返回 */
+    /* ⑦ CRC 驗證：post-patch CRC 不通過 → 嘗試切換對岸 bank，否則進入 OTA 接收 */
+    if (meta.fw_size == 0u || meta.fw_crc32 == 0xFFFFFFFFu ||
+        !FlashService_VerifyBankCRC(fw.active_bank, meta.fw_size, meta.fw_crc32))
+    {
+        fb = (fw.active_bank == 0u) ? 1u : 0u;
+        FlashService_ReadBankMeta(fb, &fb_meta);
+
+        if ((fb_meta.usage == (uint8_t)BANK_USAGE_VALID ||
+             fb_meta.usage == (uint8_t)BANK_USAGE_ACTIVE) &&
+            fb_meta.fw_size > 0u && fb_meta.fw_crc32 != 0xFFFFFFFFu &&
+            FlashService_VerifyBankCRC(fb, fb_meta.fw_size, fb_meta.fw_crc32))
+        {
+            fw.active_bank = fb;
+            FlashService_UpdateFWInfo(&fw);
+            fb_meta.trial_counter = 0u;
+            FlashService_UpdateBankMeta(fb, &fb_meta);
+            FlashService_JumpToApp(FlashService_GetBankBase(fb));   /* 不返回 */
+        }
+        return;   /* 兩 bank 均 CRC 失敗 → 進入 OTA 接收等待新韌體 */
+    }
+
+    /* ⑧ 跳入 App — 不返回 */
     FlashService_JumpToApp(FlashService_GetBankBase(fw.active_bank));
 
     while (1) {}   /* 安全哨 */

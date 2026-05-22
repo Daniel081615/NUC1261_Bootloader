@@ -2,7 +2,10 @@
  * uart_drv.h
  * ISR-driven single-channel RS485 driver for NUC1261 Bootloader.
  *
- * Channel : UART1 (RS485 AUD, hardware automatic direction via nRTS)
+ * Channel : Selected by BTLD_HOST_UART_CH in bsp_config.h
+ *           1 = UART1 Master (PE13/PE12/PE11-nRTS)
+ *           0 = UART0 Sub    (PD0/PD1/PA3-nRTS)
+ *           Both use RS485 AUD mode (hardware automatic direction via nRTS).
  * Frame   : [0x55][DeviceID][CMD][payload…][checksum][0x0A], fixed 100 bytes
  */
 

@@ -581,6 +581,11 @@
           <GroupName>bsp</GroupName>
           <Files>
             <File>
+              <FileName>bsp_config.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\bsp\bsp_config.h</FilePath>
+            </File>
+            <File>
               <FileName>bsp_flash.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\bsp\bsp_flash.h</FilePath>

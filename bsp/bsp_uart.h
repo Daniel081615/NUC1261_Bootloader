@@ -1,4 +1,5 @@
-/* bsp_uart.h — NUC1261 UART1 + SysTick hardware interface.
+/* bsp_uart.h — NUC1261 host-UART + SysTick hardware interface.
+ * Host UART channel selected by BTLD_HOST_UART_CH in bsp_config.h.
  * All NUC1261.h register access is confined to bsp_uart.c.
  * Porting to a new MCU: rewrite bsp_uart.c only. */
 

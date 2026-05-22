@@ -6,8 +6,8 @@
 /* OTA 指令碼 */
 typedef enum {
     OTA_CMD_ENTER_REQ          = 0x20, /* Host → BL: 請求進入 OTA 模式 */
-    OTA_CMD_ENTER_RSP          = 0x21, /* BL → Host: ACK */
-    OTA_CMD_STATUS_RSP         = 0x21, /* BL → Host: 進度/完成回覆（同 ENTER_RSP） */
+    OTA_CMD_ENTER_RSP          = 0x40, /* BL → Host: 進入 OTA 模式 ACK（握手回覆） */
+    OTA_CMD_STATUS_RSP         = 0x21, /* BL → Host: 進度 ACK / 完成回覆 */
     OTA_CMD_UPDATE_CHILD_REQ   = 0x23, /* Host → BL: 傳送 payload 描述 meta */
     OTA_CMD_STORE_CHILD_REQ    = 0x24, /* Host → BL: 傳送韌體資料 chunk */
     OTA_CMD_ERROR_RSP          = 0xFF, /* BL → Host: 錯誤回覆 */

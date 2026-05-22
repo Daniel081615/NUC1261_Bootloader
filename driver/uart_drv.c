@@ -130,7 +130,7 @@ void UART_Init(uint8_t device_id)
     BSP_UART_RegisterCallback(uart_irq_handler);
     BSP_UART_HW_Init(57600u);
 
-#ifdef RS485
+#if defined(RS485) && (BTLD_HOST_UART_CH == 1U)
     BSP_UART_RS485_AUD();
 #endif
 

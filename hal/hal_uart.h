@@ -1,6 +1,7 @@
 /* hal_uart.h — MCU-independent UART interface (HAL layer)
  *
- * Implementation: hal_uart.c → uart_drv.c → NUC1261 UART1
+ * Implementation: hal_uart.c → uart_drv.c → NUC1261 host UART
+ * Host UART channel (UART0/UART1) is selected by BTLD_HOST_UART_CH in bsp_config.h.
  * Porting to a new MCU: rewrite hal_uart.c only; this header stays unchanged.
  * Upper layers include only this header; never depend on uart_drv.h directly. */
 

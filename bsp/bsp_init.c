@@ -76,8 +76,6 @@ void BSP_Init(void)
     BSP_SampleDeviceID();
     PD7 = 1u;   /* LED_G off (active-low) */
     PF2 = 1u;   /* LED_R off (active-low) */
-    /* BSP_Flash_ConfigVerifyAndFix() intentionally not called here —
-     * matches the commented-out DataFlashConfig() in the original main.c */
 }
 
 uint8_t BSP_GetDeviceID(void)

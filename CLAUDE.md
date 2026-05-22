@@ -74,8 +74,19 @@ common/       → stdint.h only            (fw_info.h — shared with App)
 
 ## Architecture & Data Flow
 
+### Flash CONFIG registers (set via programmer, not software)
+
+CONFIG0 and CONFIG1 are **not** written at runtime. They must be programmed once using NuMicro ICP Programming Tool or Nu-Link before first use:
+
+| Register | Value        | Meaning                              |
+|----------|--------------|--------------------------------------|
+| CONFIG0  | `0xFFFFFFFE` | CBS [1:0] = 00b → APROM + IAP mode  |
+| CONFIG1  | `0x0001F800` | DFBA = Data Flash base address       |
+
+`BSP_Flash_ConfigVerifyAndFix()` exists in `bsp_flash.c` but is **not called** — linker eliminates it via One ELF Section per Function. Do not add a call; it would push the image over the 8 KB ROM budget.
+
 ### Boot sequence (`main.c` → `Select_fw.c`)
-1. `HAL_System_Init()` — pin-mux → clock (72 MHz PLL) → WDT (6.5 s, LIRC) → LED → DeviceID sample; internally calls `BSP_Flash_ConfigVerifyAndFix()` to ensure Data Flash base = `BSP_FW_INFO_BASE`
+1. `HAL_System_Init()` — pin-mux → clock (72 MHz PLL) → WDT (6.5 s, LIRC) → LED → DeviceID sample
 2. `HAL_UART_Init(device_id)` + `HAL_SysTick_Init()`
 3. `BootloaderProcess_Init(device_id, &g_bl_ops)` — inject DI function pointers
 4. `FlashService_Init()` — opens FMC access

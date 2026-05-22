@@ -125,7 +125,9 @@ uint32_t BSP_Flash_GetCRC32(uint32_t addr, uint32_t byte_len)
     return FMC_GetCheckSum(addr, (int32_t)byte_len);
 }
 
-/* Logic extracted verbatim from DataFlashConfig() in original main.c. */
+/* Logic extracted verbatim from DataFlashConfig() in original main.c.
+ * Uses FMC_Read/FMC_Write (inline) directly to avoid pulling FMC_ReadConfig
+ * and FMC_WriteConfig (real functions, ~324 B combined) into the image. */
 void BSP_Flash_ConfigVerifyAndFix(void)
 {
     uint32_t au32Config[2];
@@ -133,7 +135,8 @@ void BSP_Flash_ConfigVerifyAndFix(void)
     FMC_Open();
     FMC_ENABLE_CFG_UPDATE();
 
-    FMC_ReadConfig(au32Config, 2);
+    au32Config[0] = FMC_Read(FMC_CONFIG_BASE);
+    au32Config[1] = FMC_Read(FMC_CONFIG_BASE + 4U);
 
     if ((au32Config[0] & 0x3UL) == 0x0UL && au32Config[1] == BSP_FW_INFO_BASE)
     {
@@ -145,7 +148,8 @@ void BSP_Flash_ConfigVerifyAndFix(void)
     au32Config[0] &= ~0x3UL;           /* CBS -> 00b: APROM + new IAP */
     au32Config[1]  = BSP_FW_INFO_BASE; /* DFBA -> 0x0001F800 */
     FMC_Erase(FMC_CONFIG_BASE);
-    FMC_WriteConfig(au32Config, 2);
+    FMC_Write(FMC_CONFIG_BASE,        au32Config[0]);
+    FMC_Write(FMC_CONFIG_BASE + 4U,   au32Config[1]);
 
     SYS_ResetChip();
     while (1) {}                        /* unreachable — wait for reset */

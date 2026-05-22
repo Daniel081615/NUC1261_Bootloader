@@ -20,6 +20,6 @@
  *   1 = UART1  Master board  (PE13 RXD / PE12 TXD / PE11 nRTS)
  *   0 = UART0  Sub board     (PD0  RXD / PD1  TXD )
  * Both channels use RS485 AUD mode when RS485 is defined. */
-#define BTLD_HOST_UART_CH   1U
+#define BTLD_HOST_UART_CH   0U
 
 #endif /* BSP_CONFIG_H */

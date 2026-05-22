@@ -16,10 +16,16 @@
 #  define HOST_UART         UART1
 #  define HOST_UART_RST     UART1_RST
 #  define HOST_UART_MODULE  UART1_MODULE
+#  define HOST_TXD_REG      SYS->GPE_MFPH
+#  define HOST_TXD_MASK     SYS_GPE_MFPH_PE12MFP_Msk
+#  define HOST_TXD_FUNC     SYS_GPE_MFPH_PE12MFP_UART1_TXD
 #else
 #  define HOST_UART         UART0
 #  define HOST_UART_RST     UART0_RST
 #  define HOST_UART_MODULE  UART0_MODULE
+#  define HOST_TXD_REG      SYS->GPD_MFPL
+#  define HOST_TXD_MASK     SYS_GPD_MFPL_PD1MFP_Msk
+#  define HOST_TXD_FUNC     SYS_GPD_MFPL_PD1MFP_UART0_TXD
 #endif
 
 /* ================================================================
@@ -74,6 +80,24 @@ _Bool   BSP_UART_RxReady(void)       { return (_Bool)UART_IS_RX_READY(HOST_UART)
 uint8_t BSP_UART_RxRead (void)       { return (uint8_t)UART_READ(HOST_UART); }
 _Bool   BSP_UART_TxFull (void)       { return (_Bool)UART_IS_TX_FULL(HOST_UART); }
 void    BSP_UART_TxWrite(uint8_t b)  { UART_WRITE(HOST_UART, b); }
+/* TX FIFO and shift register both empty (safe to disable TX pin) */
+_Bool   BSP_UART_TxEmpty(void)       { return (_Bool)UART_IS_TX_EMPTY(HOST_UART); }
+
+/* ================================================================
+ *  TX pin MFP control
+ *  Disable: set TXD pin to GPIO mode after last bit is out.
+ *  Enable:  restore TXD function before queuing a new frame.
+ *  NUC1261 GPx_MFPy registers are not write-protected; no unlock needed.
+ * ============================================================== */
+void BSP_UART_TxPinDisable(void)
+{
+    HOST_TXD_REG &= ~HOST_TXD_MASK;
+}
+
+void BSP_UART_TxPinEnable(void)
+{
+    HOST_TXD_REG = (HOST_TXD_REG & ~HOST_TXD_MASK) | HOST_TXD_FUNC;
+}
 
 /* ================================================================
  *  Interrupt status / enable

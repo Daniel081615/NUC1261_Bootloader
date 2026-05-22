@@ -27,6 +27,13 @@ _Bool   BSP_UART_RxReady(void);
 uint8_t BSP_UART_RxRead (void);
 _Bool   BSP_UART_TxFull (void);
 void    BSP_UART_TxWrite(uint8_t byte);
+_Bool   BSP_UART_TxEmpty(void);   /* true when TX FIFO and shift register are both empty */
+
+/* ================================================================
+ *  TX pin MFP control
+ * ============================================================== */
+void BSP_UART_TxPinDisable(void);   /* TXD → GPIO after last bit */
+void BSP_UART_TxPinEnable (void);   /* GPIO → TXD before sending */
 
 /* ================================================================
  *  Interrupt status / enable

@@ -110,7 +110,10 @@ static void UART_Generic_IRQHandler(UART_Channel_t *ch)
 
         if (ch->tx_cnt == 0u)
         {
-            BSP_UART_DisableTxInt();
+            if (!BSP_UART_TxEmpty())
+                return;   /* shift register not done; re-enter on next THRE */
+            BSP_UART_TxPinDisable();
+						BSP_UART_DisableTxInt();
             BSP_UART_EnableRxInt();
         }
     }
@@ -133,7 +136,7 @@ void UART_Init(uint8_t device_id)
 #if defined(RS485) && (BTLD_HOST_UART_CH == 1U)
     BSP_UART_RS485_AUD();
 #endif
-
+		BSP_UART_TxPinDisable();
     BSP_UART_EnableRxInt();
 }
 
@@ -233,6 +236,7 @@ _Bool UART_SendFrame(UART_Channel_t *ch, uint8_t *frame_buf,
     }
     BSP_UART_ExitCritical();
 
+    BSP_UART_TxPinEnable();
     BSP_UART_EnableTxInt();
     return 0u;
 }

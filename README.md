@@ -138,7 +138,6 @@ Reset
  v
 HAL_System_Init()
  +-- BSP_Init() -> SYS_Init (72 MHz PLL), WDT (6.5 s LIRC), LED, DeviceID GPIO
- +-- BSP_Flash_ConfigVerifyAndFix() -> ensures CONFIG1 = Data Flash @ 0x1F800
  |
 HAL_UART_Init(device_id) + HAL_SysTick_Init()
  |
@@ -386,6 +385,27 @@ typedef struct {
    - **Linker tab**: Make RO Sections Position Independent — ON
 3. Build (F7). Output: `Keil/Objects/NUC1261_Bootloader.bin`
 4. Verify `.bin` size <= 8192 bytes
+
+### Flash CONFIG registers (must be set via programmer)
+
+The bootloader requires specific CONFIG values in the NUC1261 flash. These are **not** set by software at runtime — they must be programmed once using **NuMicro ICP Programming Tool** or the Nu-Link programmer before or during the first flash.
+
+| Register | Value | Meaning |
+|----------|-------|---------|
+| CONFIG0  | `0xFFFFFFFE` | CBS bits [1:0] = `00b` → APROM + IAP mode |
+| CONFIG1  | `0x0001F800` | DFBA = Data Flash base address |
+
+**Using NuMicro ICP Programming Tool:**
+1. Connect Nu-Link Pro
+2. Select chip: NUC1261
+3. Go to *Config* tab → set CONFIG0 = `0xFFFFFFFE`, CONFIG1 = `0x0001F800`
+4. Click *Program* → the tool writes CONFIG + firmware in one operation
+
+**If the chip gets locked** (Nu-Link shows "Target chip is locked"):  
+Click *Yes* to chip erase — this resets CONFIG to factory defaults (`0xFFFFFFFF`).  
+Re-program the firmware and CONFIG immediately after.
+
+---
 
 ### Board variant
 

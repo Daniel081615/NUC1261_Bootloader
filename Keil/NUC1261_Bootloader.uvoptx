@@ -143,7 +143,40 @@
           <Name>UL2CM3(-S0 -C0 -P0 -FD20000000 -FC2800 -FN2 -FF0NUC126_AP_128 -FS00 -FL020000 -FF1NUC126_LD_4 -FS1100000 -FL11000 -FP0($$Device:NUC1261NE4AE$Flash\NUC126_AP_128.FLM) -FP1($$Device:NUC1261NE4AE$Flash\NUC126_LD_4.FLM))</Name>
         </SetRegEntry>
       </TargetDriverDllRegistry>
-      <Breakpoint/>
+      <Breakpoint>
+        <Bp>
+          <Number>0</Number>
+          <Type>0</Type>
+          <LineNumber>109</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>5666</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>..\service\ota_offset_patcher.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\Target_Base_0000\../service/ota_offset_patcher.c\109</Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>128</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>2792</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>..\service\Select_fw.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\Target_Base_0000\../service/Select_fw.c\128</Expression>
+        </Bp>
+      </Breakpoint>
       <WatchWindow1>
         <Ww>
           <count>0</count>
@@ -191,7 +224,7 @@
         <Mm>
           <WinNumber>4</WinNumber>
           <SubType>0</SubType>
-          <ItemText>0xf800</ItemText>
+          <ItemText>0x1f00</ItemText>
           <AccSizeX>0</AccSizeX>
         </Mm>
       </MemoryWindow4>

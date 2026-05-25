@@ -4,9 +4,10 @@
 #include <stdint.h>
 #include "fw_info.h"
 
-/* Flash geometry constants — service-layer consumers use these instead of hal_flash.h. */
-#define FLASH_SVC_PAGE_SIZE  2048U        /* must equal HAL_FLASH_PAGE_SIZE */
-#define FLASH_SVC_BANK_SIZE  0x0000E000U  /* must equal HAL_FLASH_BANK_SIZE (56 KB) */
+/* Flash geometry constants — aliased from HAL so BSP is the single source of truth. */
+#include "hal_flash.h"
+#define FLASH_SVC_PAGE_SIZE  HAL_FLASH_PAGE_SIZE
+#define FLASH_SVC_BANK_SIZE  HAL_FLASH_BANK_SIZE
 
 /* ─── 初始化 ─── */
 void FlashService_Init(void);

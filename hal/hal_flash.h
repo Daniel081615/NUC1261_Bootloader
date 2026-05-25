@@ -4,15 +4,16 @@
 #include <stdint.h>
 
 /* ─── Flash layout constants ─────────────────────────────────────────────
- * These mirror bsp_flash.h.  Only hal_flash.c may include bsp_flash.h;
- * all upper layers (service, app) must use HAL_FLASH_* names. */
-#define HAL_FLASH_PAGE_SIZE         (2048UL)
-#define HAL_FLASH_BANK0_BASE        (0x00002000UL)
-#define HAL_FLASH_BANK1_BASE        (0x00010000UL)
-#define HAL_FLASH_BANK_SIZE         (0x0000E000UL)
-#define HAL_FLASH_BANK0_META_BASE   (HAL_FLASH_BANK1_BASE - HAL_FLASH_PAGE_SIZE)
-#define HAL_FLASH_BANK1_META_BASE   (HAL_FLASH_BANK1_BASE + HAL_FLASH_BANK_SIZE - HAL_FLASH_PAGE_SIZE)
-#define HAL_FLASH_FW_INFO_BASE      (0x0001F800UL)
+ * Aliased from bsp_flash.h so that BSP is the single source of truth.
+ * All upper layers (service, app) must use HAL_FLASH_* names. */
+#include "bsp_flash.h"
+#define HAL_FLASH_PAGE_SIZE         BSP_FLASH_PAGE_SIZE
+#define HAL_FLASH_BANK0_BASE        BSP_BANK0_BASE
+#define HAL_FLASH_BANK1_BASE        BSP_BANK1_BASE
+#define HAL_FLASH_BANK_SIZE         BSP_BANK_SIZE
+#define HAL_FLASH_BANK0_META_BASE   BSP_BANK0_META_BASE
+#define HAL_FLASH_BANK1_META_BASE   BSP_BANK1_META_BASE
+#define HAL_FLASH_FW_INFO_BASE      BSP_FW_INFO_BASE
 
 /* ─── Status codes ───────────────────────────────────────────────────── */
 typedef enum {

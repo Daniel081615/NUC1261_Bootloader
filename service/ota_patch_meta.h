@@ -9,10 +9,11 @@
 #define OTA_META_SOURCE_BASE  0x00000000UL  /* fw 固定編譯於 base 0 */
 
 /* ─── Layout constants ─── */
-#define OTA_META_PAGE_SIZE    2048U         /* must equal FLASH_SVC_PAGE_SIZE */
+#include "flash_service.h"
+#define OTA_META_PAGE_SIZE    FLASH_SVC_PAGE_SIZE  /* NUC1261: 2048, M031: 512 */
 #define OTA_META_HDR_SIZE     20u
 #define OTA_META_MAX_OFFSETS  ((OTA_META_PAGE_SIZE - OTA_META_HDR_SIZE) / sizeof(uint32_t))
-/* = (2048 - 20) / 4 = 507 */
+/* NUC1261: (2048-20)/4=507; M031: (512-20)/4=123 */
 
 /* ─── Error codes ─── */
 typedef enum {

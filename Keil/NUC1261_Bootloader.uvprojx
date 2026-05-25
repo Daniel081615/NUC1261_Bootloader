@@ -550,6 +550,16 @@
               <FileType>5</FileType>
               <FilePath>..\hal\hal_uart.h</FilePath>
             </File>
+            <File>
+              <FileName>hal_flash.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\hal\hal_flash.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_flash.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\hal\hal_flash.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

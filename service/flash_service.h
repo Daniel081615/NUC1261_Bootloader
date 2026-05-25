@@ -4,12 +4,12 @@
 #include <stdint.h>
 #include "fw_info.h"
 
-/* Flash geometry constants — service-layer consumers use these instead of bsp_flash.h. */
-#define FLASH_SVC_PAGE_SIZE  2048U        /* must equal BSP_FLASH_PAGE_SIZE */
-#define FLASH_SVC_BANK_SIZE  0x0000E000U  /* must equal BSP_BANK_SIZE (56 KB) */
+/* Flash geometry constants — service-layer consumers use these instead of hal_flash.h. */
+#define FLASH_SVC_PAGE_SIZE  2048U        /* must equal HAL_FLASH_PAGE_SIZE */
+#define FLASH_SVC_BANK_SIZE  0x0000E000U  /* must equal HAL_FLASH_BANK_SIZE (56 KB) */
 
 /* ─── 初始化 ─── */
-void FlashService_Init(void);   /* calls BSP_Flash_Init() directly */
+void FlashService_Init(void);
 
 /* ─── FW_Info 讀寫 (Data Flash at BSP_FW_INFO_BASE) ─── */
 void    FlashService_ReadFWInfo(FW_Info_t *fw);

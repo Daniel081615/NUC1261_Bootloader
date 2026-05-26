@@ -7,9 +7,10 @@
 
   <Targets>
     <Target>
-      <TargetName>NUC1261_Bootloader</TargetName>
+      <TargetName>Target_Base_0000</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
+      <pArmCC>6230000::V6.23::ARMCLANG</pArmCC>
       <pCCUsed>6230000::V6.23::ARMCLANG</pCCUsed>
       <uAC6>1</uAC6>
       <TargetOption>
@@ -49,7 +50,7 @@
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
           <OutputDirectory>.\Objects\</OutputDirectory>
-          <OutputName>NUC1261_Bootloader</OutputName>
+          <OutputName>Target_Base_0000</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>0</CreateHexFile>
@@ -80,10 +81,10 @@
             <nStopB2X>0</nStopB2X>
           </BeforeMake>
           <AfterMake>
-            <RunUserProg1>0</RunUserProg1>
-            <RunUserProg2>0</RunUserProg2>
-            <UserProg1Name></UserProg1Name>
-            <UserProg2Name></UserProg2Name>
+            <RunUserProg1>1</RunUserProg1>
+            <RunUserProg2>1</RunUserProg2>
+            <UserProg1Name>fromelf --bin ".\objects\@L.axf" --output ".\objects\@L.bin"</UserProg1Name>
+            <UserProg2Name>fromelf --text -c ".\objects\@L.axf" --output ".\objects\@L.txt"</UserProg2Name>
             <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
             <UserProg2Dos16Mode>0</UserProg2Dos16Mode>
             <nStopA1X>0</nStopA1X>
@@ -134,11 +135,11 @@
             <RunIndependent>0</RunIndependent>
             <UpdateFlashBeforeDebugging>1</UpdateFlashBeforeDebugging>
             <Capability>1</Capability>
-            <DriverSelection>-1</DriverSelection>
+            <DriverSelection>4096</DriverSelection>
           </Flash1>
           <bUseTDR>1</bUseTDR>
           <Flash2>BIN\UL2CM3.DLL</Flash2>
-          <Flash3></Flash3>
+          <Flash3>"" ()</Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
           <pFcarmGrp></pFcarmGrp>
@@ -314,7 +315,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>1</Optim>
+            <Optim>2</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -340,7 +341,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\..\NUC1261BSP-master\Library\CMSIS\Include;..\..\..\NUC1261BSP-master\Library\Device\Nuvoton\NUC1261\Include;..\..\..\NUC1261BSP-master\Library\StdDriver\inc</IncludePath>
+              <IncludePath>..\app;..\service;..\driver;..\bsp;..\common;..\..\..\NUC1261BSP-master\Library\CMSIS\Include;..\..\..\NUC1261BSP-master\Library\Device\Nuvoton\NUC1261\Include;..\..\..\NUC1261BSP-master\Library\StdDriver\inc;..\hal</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -374,7 +375,7 @@
             <ScatterFile></ScatterFile>
             <IncludeLibs></IncludeLibs>
             <IncludeLibsPath></IncludeLibsPath>
-            <Misc></Misc>
+            <Misc>--map --first='startup_NUC1261.o(RESET)' --datacompressor=off --info=inline --entry Reset_Handler</Misc>
             <LinkerInputFile></LinkerInputFile>
             <DisabledWarnings></DisabledWarnings>
           </LDads>
@@ -397,72 +398,82 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>User</GroupName>
+          <GroupName>app</GroupName>
           <Files>
             <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\main.c</FilePath>
+              <FilePath>..\app\main.c</FilePath>
             </File>
             <File>
               <FileName>BootloaderProcess.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\BootloaderProcess.h</FilePath>
-            </File>
-            <File>
-              <FileName>ExternFunc.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\ExternFunc.h</FilePath>
-            </File>
-            <File>
-              <FileName>fmc_user.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\fmc_user.h</FilePath>
-            </File>
-            <File>
-              <FileName>MeterV52PinConfig.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\MeterV52PinConfig.h</FilePath>
-            </File>
-            <File>
-              <FileName>MyDef.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\MyDef.h</FilePath>
-            </File>
-            <File>
-              <FileName>Select_fw.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\Select_fw.h</FilePath>
-            </File>
-            <File>
-              <FileName>uart_drv.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\uart_drv.h</FilePath>
+              <FilePath>..\app\BootloaderProcess.h</FilePath>
             </File>
             <File>
               <FileName>BootloaderProcess.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\BootloaderProcess.c</FilePath>
+              <FilePath>..\app\BootloaderProcess.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>service</GroupName>
+          <Files>
+            <File>
+              <FileName>flash_service.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\service\flash_service.h</FilePath>
             </File>
             <File>
-              <FileName>fmc_user.c</FileName>
+              <FileName>flash_service.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\fmc_user.c</FilePath>
+              <FilePath>..\service\flash_service.c</FilePath>
             </File>
             <File>
-              <FileName>MeterV52PinConfig.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\MeterV52PinConfig.c</FilePath>
+              <FileName>Select_fw.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\service\Select_fw.h</FilePath>
             </File>
             <File>
               <FileName>Select_fw.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Select_fw.c</FilePath>
+              <FilePath>..\service\Select_fw.c</FilePath>
             </File>
             <File>
-              <FileName>uart_drv.c</FileName>
+              <FileName>ota_scheduler.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\service\ota_scheduler.h</FilePath>
+            </File>
+            <File>
+              <FileName>ota_offset_patcher.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\uart_drv.c</FilePath>
+              <FilePath>..\service\ota_offset_patcher.c</FilePath>
+            </File>
+            <File>
+              <FileName>ota_offset_patcher.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\service\ota_offset_patcher.h</FilePath>
+            </File>
+            <File>
+              <FileName>ota_patch_meta.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\service\ota_patch_meta.c</FilePath>
+            </File>
+            <File>
+              <FileName>ota_patch_meta.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\service\ota_patch_meta.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>common</GroupName>
+          <Files>
+            <File>
+              <FileName>fw_info.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\common\fw_info.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -473,11 +484,6 @@
               <FileName>clk.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\NUC1261BSP-master\Library\StdDriver\src\clk.c</FilePath>
-            </File>
-            <File>
-              <FileName>crc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\NUC1261BSP-master\Library\StdDriver\src\crc.c</FilePath>
             </File>
             <File>
               <FileName>fmc.c</FileName>
@@ -508,6 +514,136 @@
               <FileName>wdt.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\NUC1261BSP-master\Library\StdDriver\src\wdt.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>hal</GroupName>
+          <Files>
+            <File>
+              <FileName>hal_sys.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\hal\hal_sys.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_sys.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\hal\hal_sys.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_gpio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\hal\hal_gpio.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_gpio.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\hal\hal_gpio.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\hal\hal_uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_uart.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\hal\hal_uart.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_flash.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\hal\hal_flash.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_flash.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\hal\hal_flash.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>driver</GroupName>
+          <Files>
+            <File>
+              <FileName>drv_sys.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\driver\drv_sys.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_sys.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\driver\drv_sys.h</FilePath>
+            </File>
+            <File>
+              <FileName>uart_drv.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\driver\uart_drv.c</FilePath>
+            </File>
+            <File>
+              <FileName>uart_drv.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\driver\uart_drv.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>bsp</GroupName>
+          <Files>
+            <File>
+              <FileName>bsp_config.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\bsp\bsp_config.h</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_flash.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\bsp\bsp_flash.h</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_flash.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\bsp_flash.c</FilePath>
+            </File>
+            <File>
+              <FileName>MeterV52PinConfig.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\bsp\MeterV52PinConfig.h</FilePath>
+            </File>
+            <File>
+              <FileName>MeterV52PinConfig.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\MeterV52PinConfig.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_init.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\bsp_init.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_init.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\bsp\bsp_init.h</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\bsp_uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_uart.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\bsp\bsp_uart.h</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_gpio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\bsp_gpio.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_gpio.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\bsp\bsp_gpio.h</FilePath>
             </File>
           </Files>
         </Group>

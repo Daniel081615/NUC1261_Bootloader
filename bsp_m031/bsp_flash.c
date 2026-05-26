@@ -1,6 +1,8 @@
 /* bsp_flash.c — M031LE3AE FMC flash implementation.
  * This is the ONLY file in the M031 BSP that includes M031Series.h for FMC.
- * Key difference from NUC1261: page size = 512 B, CRC function = FMC_GetChkSum(). */
+ * Physical erase unit = 512 B (BSP_FLASH_PHYS_PAGE_SIZE); logical page = 2048 B
+ * (BSP_FLASH_PAGE_SIZE, unified with NUC1261). BSP_Flash_ErasePage erases 4
+ * consecutive physical pages. CRC uses FMC_GetChkSum() instead of FMC_GetCheckSum(). */
 
 #include "M031Series.h"
 #include "bsp_flash.h"
@@ -42,14 +44,19 @@ BSP_FLASH_Status BSP_Flash_IsValidAddr(uint32_t u32Addr, uint32_t u32Len)
 
 BSP_FLASH_Status BSP_Flash_ErasePage(uint32_t u32Addr)
 {
+    uint32_t i;
+
     if ((u32Addr % BSP_FLASH_PAGE_SIZE) != 0U)
         return BSP_FLASH_ERR_ALIGN;
 
     if (BSP_Flash_IsValidAddr(u32Addr, BSP_FLASH_PAGE_SIZE) != BSP_FLASH_OK)
         return BSP_FLASH_ERR_RANGE;
 
-    if (FMC_Erase(u32Addr) != 0)
-        return BSP_FLASH_ERR_ERASE;
+    for (i = 0U; i < (BSP_FLASH_PAGE_SIZE / BSP_FLASH_PHYS_PAGE_SIZE); i++)
+    {
+        if (FMC_Erase(u32Addr + i * BSP_FLASH_PHYS_PAGE_SIZE) != 0)
+            return BSP_FLASH_ERR_ERASE;
+    }
 
     return BSP_FLASH_OK;
 }

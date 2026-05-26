@@ -10,10 +10,10 @@
 
 /* ─── Layout constants ─── */
 #include "flash_service.h"
-#define OTA_META_PAGE_SIZE    FLASH_SVC_PAGE_SIZE  /* NUC1261: 2048, M031: 512 */
+#define OTA_META_PAGE_SIZE    FLASH_SVC_PAGE_SIZE  /* 2048 B on both NUC1261 and M031 */
 #define OTA_META_HDR_SIZE     20u
 #define OTA_META_MAX_OFFSETS  ((OTA_META_PAGE_SIZE - OTA_META_HDR_SIZE) / sizeof(uint32_t))
-/* NUC1261: (2048-20)/4=507; M031: (512-20)/4=123 */
+/* (2048-20)/4 = 507 offsets on both MCUs */
 
 /* ─── Error codes ─── */
 typedef enum {

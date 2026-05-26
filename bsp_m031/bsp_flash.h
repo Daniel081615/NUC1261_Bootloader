@@ -11,7 +11,10 @@
 #include <stddef.h>
 
 /* ─── Flash 配置 ─── */
-#define BSP_FLASH_PAGE_SIZE         (0x0200UL)          /* M031: 512 B per page */
+/* 物理抹除單位（512 B），僅 BSP 層內部使用 */
+#define BSP_FLASH_PHYS_PAGE_SIZE    (0x0200UL)
+/* 邏輯頁大小：與 NUC1261 統一為 2048 B，BSP_Flash_ErasePage 內部迴圈 4 次物理抹除 */
+#define BSP_FLASH_PAGE_SIZE         (0x0800UL)
 #define BSP_APROM_BASE              (0x00000000UL)
 #define BSP_APP_BASE                (0x00002000UL)
 #define BSP_APROM_END               (0x00020000UL)
@@ -21,9 +24,9 @@
 #define BSP_BANK1_BASE              (0x00010000UL)      /* Bank 1 FW 起始 */
 #define BSP_BANK_SIZE               (0x0000E000UL)      /* 每個 Bank 大小 (56 KB) */
 
-/* Bank Meta 頁位址：Bank 末端倒數第一個 Flash page (512 B on M031) */
-#define BSP_BANK0_META_BASE         (BSP_BANK1_BASE - BSP_FLASH_PAGE_SIZE)      /* 0x0000FE00 */
-#define BSP_BANK1_META_BASE         (BSP_BANK1_BASE + BSP_BANK_SIZE - BSP_FLASH_PAGE_SIZE) /* 0x0001DC00 */
+/* Bank Meta 頁位址：Bank 末端倒數一個邏輯頁（2048 B），與 NUC1261 位址一致 */
+#define BSP_BANK0_META_BASE         (BSP_BANK1_BASE - BSP_FLASH_PAGE_SIZE)      /* 0x0000F800 */
+#define BSP_BANK1_META_BASE         (BSP_BANK1_BASE + BSP_BANK_SIZE - BSP_FLASH_PAGE_SIZE) /* 0x0001D800 */
 
 /* FW_Info 位址：Data Flash (CONFIG1 DFBA = 0x1F800) */
 #define BSP_FW_INFO_BASE            (0x0001F800UL)

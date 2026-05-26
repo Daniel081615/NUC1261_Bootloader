@@ -11,11 +11,13 @@
 #define HOST_UART         UART0
 #define HOST_UART_RST     UART0_RST
 #define HOST_UART_MODULE  UART0_MODULE
+#define HOST_IRQn					UART02_IRQn
 
 /* TX pin: PA14 in GPA_MFPH (pins 8-15) */
 #define HOST_TXD_REG      SYS->GPA_MFPH
 #define HOST_TXD_MASK     SYS_GPA_MFPH_PA14MFP_Msk
 #define HOST_TXD_FUNC     SYS_GPA_MFPH_PA14MFP_UART0_TXD
+
 
 /* ================================================================
  *  IRQ callback
@@ -37,9 +39,18 @@ void UART02_IRQHandler(void)
  * ============================================================== */
 void BSP_UART_HW_Init(uint32_t baud_rate)
 {
+    /* 重置 UART 模組 */
     SYS_ResetModule(HOST_UART_RST);
-    /* Clock source already set to HIRC in BSP_Init; divider = 1 */
+    
+    /* 開啟 UART 硬體並設定鮑率 */
     UART_Open(HOST_UART, baud_rate);
+    BSP_UART_RS485_AUD();
+
+    /* 1. 開啟 UART 內部的接收中斷 */
+    BSP_UART_EnableRxInt();
+    
+    /* 2. 【關鍵】開啟 Cortex-M0 核心的 NVIC 中斷控制器 */
+    NVIC_EnableIRQ(HOST_IRQn); 
 }
 
 void BSP_UART_RS485_AUD(void)
@@ -66,7 +77,13 @@ _Bool   BSP_UART_TxEmpty(void)       { return (_Bool)UART_IS_TX_EMPTY(HOST_UART)
  * ============================================================== */
 void BSP_UART_TxPinDisable(void)
 {
+    /* Release TXD MFP first, then set QUASI (open-drain + pull-up = HIGH).
+     * UT2201 auto-direction module uses TXD level to control DE/nRE:
+     * HIGH = idle = receiver enabled; LOW = start bit = transmitter enabled.
+     * OUTPUT LOW would permanently disable the receiver. */
     HOST_TXD_REG &= ~HOST_TXD_MASK;
+    PA->MODE = (PA->MODE & ~GPIO_MODE_MODE14_Msk)
+             | (GPIO_MODE_QUASI << GPIO_MODE_MODE14_Pos);
 }
 
 void BSP_UART_TxPinEnable(void)

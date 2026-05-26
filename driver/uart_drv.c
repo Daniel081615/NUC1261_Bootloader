@@ -12,6 +12,7 @@
 #include "uart_drv.h"
 #include <string.h>
 
+
 /* ================================================================
  *  Private storage
  * ============================================================== */
@@ -59,7 +60,6 @@ static void UART_Generic_IRQHandler(UART_Channel_t *ch)
         while (BSP_UART_RxReady())
         {
             byte = BSP_UART_RxRead();
-
             /* Discard bytes until frame header arrives */
             if (ch->rx_cnt == 0u && byte != UART_FRAME_HEADER)
                 continue;
@@ -136,7 +136,7 @@ void UART_Init(uint8_t device_id)
 #if defined(RS485) && (BTLD_HOST_UART_CH == 1U)
     BSP_UART_RS485_AUD();
 #endif
-		BSP_UART_TxPinDisable();
+    BSP_UART_TxPinDisable();
     BSP_UART_EnableRxInt();
 }
 

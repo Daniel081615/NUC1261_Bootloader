@@ -15,34 +15,44 @@ static uint8_t s_device_id = 0u;
 
 static void BSP_SystemInit(void)
 {
-    /* Enable HIRC (48 MHz) and LIRC (38.4 kHz) */
-    CLK_EnableXtalRC(CLK_PWRCTL_HIRCEN_Msk | CLK_PWRCTL_LIRCEN_Msk);
-    CLK_WaitClockReady(CLK_STATUS_HIRCSTB_Msk | CLK_STATUS_LIRCSTB_Msk);
+    /* 1. 先不要在這裡開中斷，確保硬體初始化不被打斷 */
+	
+    /* 2. 解鎖暫存器保護 */
+    SYS_UnlockReg();
 
-    /* HCLK = HIRC / 1 = 48 MHz */
+    /* 3. 開啟 HIRC (48 MHz) */
+    CLK_EnableXtalRC(CLK_PWRCTL_HIRCEN_Msk);
+    CLK_WaitClockReady(CLK_STATUS_HIRCSTB_Msk);
+
+    /* 4. 將 HCLK 直接設為 HIRC / 1 = 48 MHz */
     CLK_SetHCLK(CLK_CLKSEL0_HCLKSEL_HIRC, CLK_CLKDIV0_HCLK(1));
 
-    /* Peripheral clocks */
-    CLK_EnableModuleClock(UART0_MODULE);
-    CLK_EnableModuleClock(WDT_MODULE);
-    CLK_SetModuleClock(UART0_MODULE, CLK_CLKSEL1_UART0SEL_HIRC, CLK_CLKDIV0_UART0(1));
-    CLK_SetModuleClock(WDT_MODULE,   CLK_CLKSEL1_WDTSEL_LIRC,   0u);
-
+    /* 5. 更新系統核心時脈變數 */
     SystemCoreClockUpdate();
 
-    /* UART0 pin-mux: PA15 = RXD, PA14 = TXD */
-    SYS->GPA_MFPH = (SYS->GPA_MFPH & ~SYS_GPA_MFPH_PA15MFP_Msk)
-                  | SYS_GPA_MFPH_PA15MFP_UART0_RXD;
-    SYS->GPA_MFPH = (SYS->GPA_MFPH & ~SYS_GPA_MFPH_PA14MFP_Msk)
-                  | SYS_GPA_MFPH_PA14MFP_UART0_TXD;
+    /* 6. 周邊時脈設定 */
+    CLK_EnableModuleClock(UART0_MODULE);
+    CLK_EnableModuleClock(WDT_MODULE);
+    
+    /* UART0 時脈源使用 HIRC */
+    CLK_SetModuleClock(UART0_MODULE, CLK_CLKSEL1_UART0SEL_HIRC, CLK_CLKDIV0_UART0(1));
+    /* 【安全修正】看門狗時脈源改回完全獨立的 LIRC (38.4 kHz)，確保省電與死機時的強制重置能力 */
+    CLK_SetModuleClock(WDT_MODULE,   CLK_CLKSEL1_WDTSEL_LIRC,   0u);
 
-    /* LED GPIO: PF5 = LED_G, PB1 = LED_R (output, active-low) */
+    /* 7. 管腳多功能設定 (UART0 Pin-Mux) */
+    SYS->GPA_MFPH = (SYS->GPA_MFPH & ~SYS_GPA_MFPH_PA15MFP_Msk) | SYS_GPA_MFPH_PA15MFP_UART0_RXD;
+    SYS->GPA_MFPH = (SYS->GPA_MFPH & ~SYS_GPA_MFPH_PA14MFP_Msk) | SYS_GPA_MFPH_PA14MFP_UART0_TXD;
+
+    /* 8. LED 與 GPIO 設定 */
     GPIO_SetMode(PF, BIT5, GPIO_MODE_OUTPUT);
     GPIO_SetMode(PB, BIT1, GPIO_MODE_OUTPUT);
-
-    /* DeviceID GPIO: PB2-PB7 quasi-bidirectional (built-in weak pull-up, no GPIO_SetPullCtl needed)
-     * *** Confirm these pins match board DIP/jumper wiring *** */
     GPIO_SetMode(PB, BIT2 | BIT3 | BIT4 | BIT5 | BIT6 | BIT7, GPIO_MODE_QUASI);
+
+    /* 9. 【安全修正】重新鎖定暫存器保護，防止關鍵設定被跑飛的程式誤寫 */
+    SYS_LockReg();
+
+    /* 10. 【關鍵調整】硬體周邊與時脈全部配置安全、穩定後，再解開全域中斷總開關 */
+    __enable_irq();
 }
 
 static void BSP_WDT_Init(void)
@@ -72,8 +82,8 @@ void BSP_Init(void)
     BSP_SystemInit();
     BSP_WDT_Init();
     BSP_SampleDeviceID();
-    PF5 = 0u;   /* LED_G off (active-low) */
-    PB1 = 0u;   /* LED_R off (active-low) */
+    PF5 = 1u;   /* LED_G off (active-low) */
+    PB1 = 1u;   /* LED_R off (active-low) */
     SYS_LockReg();
 }
 
